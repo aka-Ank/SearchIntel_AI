@@ -26,7 +26,7 @@
 
 ## Reliability hardening checkpoint
 
-**Response-size bounds implemented and locally tested.** HTTP bodies are consumed incrementally and rejected after a configurable maximum (5 MB default, 50 MB configuration ceiling); this prevents an unusually large page or robots file from being fully buffered. It does not yet pin DNS resolution to a validated IP, so DNS rebinding protection remains a production security task.
+**Response-size bounds and DNS pinning implemented and locally tested.** HTTP bodies are consumed incrementally and rejected after a configurable maximum (5 MB default, 50 MB configuration ceiling). A custom HTTPX/httpcore transport resolves and validates destinations immediately before socket connection, connects to the vetted IP while preserving the original hostname for HTTP and TLS, and ignores ambient proxy variables. A controlled DNS-rebinding test and the local browser crawl flow pass; external website crawling has not been used for verification.
 
 `GET /api/v1/health/ready` checks SQL persistence, Redis reachability, and Celery worker responses with bounded network timeouts. Unit tests cover ready and no-worker states; the live check returned ready against the isolated services and worker.
 
@@ -58,7 +58,7 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 ## Next stages
 
 - Expand worker fault/load testing and verify throttling behind the intended trusted-proxy configuration.
-- Plan an explicit legacy membership backfill and close the crawler DNS rebinding gap.
+- Plan an explicit legacy membership backfill and verify authenticated API-to-Qdrant tenant isolation end to end.
 - Add provider streaming and run a real-provider smoke only when credentials and explicit paid-inference authorization exist; retain mock CI.
 - Improve semantic competitor analysis quality, then add comparative SEO findings and recommendations without asserting unavailable search metrics.
 - Continue recommendations, monitoring, graph, GEO, authorized search analytics, performance, deployment, and research phases from the master roadmap.

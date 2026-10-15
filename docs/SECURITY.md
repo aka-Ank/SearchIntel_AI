@@ -22,6 +22,7 @@ Relational queries and vector retrieval retain tenant/project filters. Worker di
 
 - Project-level membership roles (current roles are tenant-level).
 - Full authenticated PostgreSQL-to-Qdrant isolation coverage and broader dependency/security scanning.
-- DNS pinning/rebinding protection for crawler requests remains a separate SSRF gap.
+- A reviewed legacy membership backfill is required before exposing existing tenants to authenticated users.
+- DNS pinning has controlled tests for a public-to-private rebinding change; do not treat those tests as a broad external security certification.
 
 SQLite tests with a deterministic Redis test double verify anonymous rejection, cookie login/logout including replay rejection after logout, CSRF writes, membership isolation, and viewer/editor authorization. A disposable PostgreSQL 16 integration verified the auth migration and cross-tenant access. Playwright verifies browser login, tenant denial, and API failure paths. These checks do not establish production security or the full PostgreSQL-to-Qdrant tenant boundary.

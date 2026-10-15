@@ -65,7 +65,7 @@ The crawler is split into:
 
 HTTP response bodies are read in bounded streaming mode, controlled by `CRAWLER_MAX_RESPONSE_BYTES` (5 MB by default, maximum 50 MB). Oversized content is treated as a failed page rather than retained fully in process memory.
 
-The crawler supports bounded multi-page crawls with max-page and max-depth limits, same-host confinement, URL safety validation at each redirect, duplicate prevention, content-type filtering, configurable per-job concurrency, request pacing, and robots.txt restrictions. HTTP transient failures receive bounded exponential retries. Crawl jobs and audit runs are dispatched through Celery over Redis, with PostgreSQL as the job-state authority. Cancellation is cooperative between crawl batches and page indexing operations. Worker startup requeues pending and stale jobs. DNS answers are checked during URL validation but are not pinned to the actual connection, so DNS rebinding remains an open SSRF issue.
+The crawler supports bounded multi-page crawls with max-page and max-depth limits, same-host confinement, URL safety validation at each redirect, duplicate prevention, content-type filtering, configurable per-job concurrency, request pacing, and robots.txt restrictions. HTTP transient failures receive bounded exponential retries. Crawl jobs and audit runs are dispatched through Celery over Redis, with PostgreSQL as the job-state authority. Cancellation is cooperative between crawl batches and page indexing operations. Worker startup requeues pending and stale jobs. A pinned HTTPX/httpcore transport resolves and validates DNS answers immediately before opening the socket, connects to the vetted IP directly, and retains the requested hostname for HTTP `Host` and TLS SNI. Ambient proxy environment settings are disabled for crawler requests. Controlled tests cover an induced public-to-private DNS change; external crawling has not been performed as part of verification.
 
 ### Processing Pipeline
 
@@ -198,7 +198,7 @@ This flow has passed unit checks and a controlled PostgreSQL/Redis/Celery/Qdrant
 3. Bounded asynchronous crawl and deterministic SEO audits — unit-tested and controlled live worker verified with Celery solo pool.
 4. Qdrant hybrid retrieval and grounded RAG — controlled service workflow verified; mock LLM only.
 5. Connected Next.js dashboard — build- and browser-verified against live local APIs.
-6. Production hardening — full Linux/Python 3.12 prefork crawl, authenticated tenant identity, browser E2E, retry/recovery tests, PostgreSQL auth checks, Redis-backed API rate limits, and isolated Qdrant tenant filtering pass. DNS pinning, reviewed legacy membership backfill, authenticated API-to-Qdrant verification, broader fault injection, and performance profiling remain pending.
+6. Production hardening — full Linux/Python 3.12 prefork crawl, authenticated tenant identity, browser E2E, retry/recovery tests, PostgreSQL auth checks, Redis-backed API rate limits, controlled DNS pinning checks, and isolated Qdrant tenant filtering pass. Reviewed legacy membership backfill, authenticated API-to-Qdrant verification, broader fault injection, and performance profiling remain pending.
 7. Advanced product work — initial competitor phrase coverage is implemented with optional configured sentence-transformer similarity. Deeper competitor SEO, recommendations, monitoring, graph/agent workflows, GEO, integrations, deployment, and reproducible research remain planned.
 
 ## Async Crawl and SEO Audit Worker

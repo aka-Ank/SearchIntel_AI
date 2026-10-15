@@ -11,21 +11,25 @@ Updated: 2026-10-15
 - Technical SEO audits: deterministic rules, relational persistence, Celery dispatch, tenant-scoped APIs, and audit history pass unit checks and a live audit (3 pages, 27 findings).
 - Frontend: Next.js dashboard implements auth, project/site management, crawl, audits, page browsing, search, RAG, and competitor coverage. Playwright E2E passes for auth, tenant isolation, crawl, audit, citations, competitor crawl, and API failure display.
 - Controlled integration: isolated PostgreSQL, Redis, and Qdrant containers completed migration, crawl, indexing, hybrid retrieval, grounded mock RAG, and SEO audit. Existing stopped `seo-*` containers and volumes were left untouched.
-- Authentication: FastAPI Users registration/login/logout with Redis-backed opaque sessions, HttpOnly, SameSite cookies, and CSRF validation; membership-backed tenant roles protect project, website, crawl, audit, page, index, search, and RAG routes. SQLite tests, PostgreSQL/Redis session revocation and tenant checks, and browser E2E pass. A unique `AUTH_SECRET` of at least 32 characters is required. Rate limiting and legacy membership backfill remain open.
+- Authentication: FastAPI Users registration/login/logout with Redis-backed opaque sessions, HttpOnly, SameSite cookies, and CSRF validation; membership-backed tenant roles protect project, website, crawl, audit, page, index, search, and RAG routes. SQLite tests, PostgreSQL/Redis session revocation and tenant checks, browser E2E, and Redis-backed login/registration/crawl/audit throttles pass. A unique `AUTH_SECRET` of at least 32 characters is required. Legacy membership backfill remains open.
+- Crawler SSRF hardening: validated DNS answers are pinned to the socket connection; unsafe redirects and private destinations are rejected. Controlled DNS-rebinding tests and the fixture-site browser crawl pass. No external website crawl was performed.
+- Vector isolation: an isolated Qdrant integration verified tenant filters even with shared project and website identifiers. Authenticated API-to-Qdrant integration remains open.
 - LLM integration: OpenAI-compatible provider supports environment credentials, configurable model, timeouts/retries, token usage and optional cost estimates. Mock provider tests pass; no live inference or streaming was run.
 - Competitor intelligence: competitor sites use the existing crawler/indexer. Tenant-scoped coverage compares crawled topic phrases, links evidence, and supports semantic similarity when sentence-transformers is configured. No search demand, rank, traffic, or backlink claims are made.
 
 ## Verified checks
 
 - `cd backend && uv sync --extra dev` — passed.
-- `cd backend && uv run pytest -q` — 52 passed; one Starlette/httpx deprecation warning.
+- `cd backend && uv run pytest -q` — 58 passed, 1 opt-in Qdrant integration skipped without its URL; one Starlette/httpx deprecation warning.
 - `cd backend && uv run ruff check app tests` — passed.
-- `cd backend && uv run mypy app` — passed (85 source files).
+- `cd backend && uv run mypy app` — passed (87 source files).
 - `cd frontend && npm run lint`, `npm run typecheck`, and `npm run build` — passed.
 - `cd frontend && npm audit` — passed; zero reported vulnerabilities.
 - Browser workflow: loaded the live integration project, three persisted pages, completed crawl counters, and 27 audit findings after reload.
 - SQLite and disposable PostgreSQL 16 Alembic upgrades — passed through `20261015_0003`.
-- `cd frontend && npm run e2e:local` — 2 Playwright tests passed using local fixture services (SQLite/Redis/solo worker); does not exercise PostgreSQL/Qdrant.
+- `cd frontend && npm run e2e:local` — 3 Playwright tests passed using local fixture services (SQLite/Redis/solo worker), including real Redis throttling and the pinned crawler transport; does not exercise PostgreSQL/Qdrant.
+- `SEARCHINTEL_TEST_QDRANT_URL=http://127.0.0.1:<isolated-port> uv run pytest -q tests/integration/test_qdrant_tenant_isolation.py` — 1 passed against fresh Qdrant 1.12.6; test collection and container removed.
+- Controlled resolver tests — crawler connected to the approved loopback IP while preserving `Host`, and rejected a simulated public-to-private DNS answer before connecting.
 - Controlled live workflow: readiness, Redis/Celery worker, PostgreSQL pages, Qdrant vectors, hybrid search, grounded mock RAG with citation, SEO audit, and cross-tenant `404` passed against a loopback fixture.
 - A full isolated Linux/Python 3.12 Celery prefork workflow completed crawl, PostgreSQL persistence, Qdrant indexing, hybrid search, cited mock RAG, and SEO audit. macOS/Python 3.14 development uses the solo pool.
 

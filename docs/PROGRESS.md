@@ -9,7 +9,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | Workstream | Status | Evidence |
 |---|---|---|
 | Recovery | Complete | 66 archive files restored and hash checked; see `RECOVERY_REPORT.md`. |
-| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 54 tests. |
+| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 58 passed and one opt-in Qdrant test skipped without its service URL. |
 | Async crawling | Implemented; solo and Linux prefork verified | Celery recovered jobs, tracked progress, and persisted pages. A full Python 3.12 prefork workflow crawled two pages, indexed vectors, searched, answered with a citation, and completed an SEO audit. macOS/Python 3.14 development retains the solo pool. |
 | Technical SEO | Implemented; live local service verified | A worker audited three PostgreSQL pages and persisted 27 findings; status, history, summary, and finding APIs returned the stored results. |
 | Frontend | Implemented; browser E2E passed | Playwright verifies auth, tenant isolation, project and website creation, crawl progress, audit findings, indexed pages, cited mock RAG, competitor crawling/coverage, and API failure display. |
@@ -17,6 +17,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | Authentication | Implemented; SQLite and PostgreSQL checks passed | FastAPI Users, CSRF, tenant roles, Alembic `20261015_0003`, and PostgreSQL cross-tenant denial verified. |
 | API rate limiting | Implemented; deterministic and Redis-backed E2E verified | Login, registration, crawl enqueue, and audit enqueue use configurable Redis counters. The local Playwright suite exceeded the login threshold and observed `429` with `Retry-After`. |
 | Qdrant tenant filter | Isolated service integration passed | A fresh Qdrant 1.12.6 container stored chunks for two tenants sharing project/website IDs; each filtered query returned only that tenant's chunk. Authenticated API-to-Qdrant coverage remains open. |
+| Crawler DNS pinning | Implemented; controlled rebinding tests and browser crawl passed | The socket transport resolves and validates answers immediately before connecting to a selected IP, while retaining the original host for HTTP and TLS. Ambient proxy settings are disabled for crawler fetches. |
 | Worker reliability | Service tests and full Linux prefork workflow passed | Retry, stale recovery, idempotency, cancellation, and failure persistence tests pass; prefork completed crawl through audit. |
 | LLM provider | Adapter implemented; mock tests passed | OpenAI-compatible provider has bounded retries/timeouts, usage accounting, and optional cost estimates. No live provider call was made. |
 | Competitor intelligence | Initial phrase coverage implemented | Competitors use existing crawl/index flow. Coverage links candidate phrases to crawled pages; configured sentence-transformer embeddings enable semantic matching. |
@@ -35,7 +36,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - Tenant-scoped website history endpoints list up to 20 crawl jobs and audits; the dashboard reads latest crawl/audit/findings from those persisted endpoints and stores tenant selection in browser storage.
 - Redis Lua counters apply configurable IP/category rate limits to login, registration, crawl enqueue, and audit enqueue. They return `429` plus `Retry-After`, and fail closed with `503` when Redis is unavailable. Forwarded IP headers are not trusted.
 
-## Latest checks actually run
+## Earlier controlled-service checkpoint checks
 
 - `cd backend && uv sync --extra dev`: passed; Celery/Redis client dependencies installed into the project virtual environment.
 - `cd backend && DATABASE_URL=sqlite:////tmp/searchintel-auth-migration-final-20261015.db uv run alembic upgrade head`: passed through `20261015_0003`.
@@ -65,6 +66,13 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - Added an opt-in integration test that creates a unique temporary collection, indexes two tenant-owned chunks with colliding project and website IDs, checks each tenant-filtered vector query returns only its own chunk, and deletes the collection.
 - Executed against a fresh isolated `qdrant/qdrant:v1.12.6` container: **1 passed**. The test-owned container was removed; normal backend tests do not require Qdrant and report this test skipped unless `SEARCHINTEL_TEST_QDRANT_URL` is configured.
 - This validates Qdrant payload filtering at the vector-store layer. A full authenticated API request through PostgreSQL and Qdrant remains unverified.
+
+## 2026-10-15 — Crawler DNS pinning
+
+- Added a pinned HTTPX transport backed by httpcore. At socket-open time it resolves the destination again, rejects unsafe answers, and connects directly to the selected vetted IP; the URL hostname remains unchanged for the HTTP `Host` header and TLS SNI. Environment proxy variables are not honored by the crawler transport.
+- Validation covered a controlled HTTP server reached through a test hostname, preservation of the original `Host`, a simulated public-to-private DNS change rejected before connection, the full backend suite, and the Playwright crawl/audit/RAG flow.
+- `cd backend && uv run pytest -q`: **58 passed, 1 skipped** (opt-in Qdrant integration without URL); Ruff passed; mypy passed for 87 source files; `uv lock --check` passed. `cd frontend && npm run lint && npm run typecheck` passed; `cd frontend && npm run e2e:local`: **3 passed**.
+- No external website was crawled. The rebinding test uses controlled resolver answers, so this establishes the transport behavior under the tested cases rather than a broad external security certification.
 
 ## Historical first checkpoint gaps (superseded by the verified updates below)
 
@@ -99,7 +107,7 @@ Historical checkpoint note: this entry predates the 2026-10-15 repository preser
 
 ## Remaining work
 
-- Plan an explicit membership backfill for existing tenants; add DNS pinning to close the remaining rebinding risk.
+- Plan an explicit membership backfill for existing tenants; verify the authenticated API-to-Qdrant boundary and profile performance.
 - Verify the authenticated API-to-Qdrant tenant boundary end to end; profile performance and resource usage.
 - A live LLM smoke test and streaming need configured credentials and explicit paid-inference authorization.
 - Extend competitor topic quality, competitive SEO audits, and recommendations. No ranking, traffic, backlink, or keyword-demand claims are made.

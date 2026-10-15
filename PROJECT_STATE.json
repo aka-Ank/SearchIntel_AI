@@ -2,7 +2,7 @@
   "project": "SearchIntel AI",
   "updated_at": "2026-10-15",
   "current_phase": "phase_11_production_security_hardening",
-  "current_task": "dns_pinning_and_broader_tenant_isolation",
+  "current_task": "authenticated_api_to_qdrant_boundary_and_legacy_membership_backfill",
   "run_status": "in_progress",
   "completed_phases": [
     "phase_00_recovery",
@@ -19,11 +19,12 @@
     "phase_09_playwright_browser_e2e",
     "phase_10_competitor_coverage_foundation",
     "phase_07_linux_prefork_full_workflow",
-    "phase_11_redis_backed_api_rate_limits"
+    "phase_11_redis_backed_api_rate_limits",
+    "phase_11_crawler_dns_pinning"
   ],
   "blocked_phases": [],
   "pending_tasks": [
-    "plan_reviewed_legacy_tenant_membership_backfill_and_dns_pinning",
+    "review_legacy_tenant_membership_backfill",
     "verify_authenticated_api_to_qdrant_tenant_boundary_and_profile_performance",
     "add_streaming_and_run_real_llm_smoke_only_with_credentials_and_authorization",
     "validate_semantic_competitor_match_quality_with_configured_sentence_transformer",
@@ -32,7 +33,7 @@
   "verified_tests": {
     "pytest": {
       "command": "cd backend && uv run pytest -q",
-      "result": "54 passed; one Starlette/httpx TestClient deprecation warning",
+      "result": "58 passed, 1 skipped (opt-in Qdrant integration without URL); one Starlette/httpx TestClient deprecation warning",
       "verified_at": "2026-10-15"
     },
     "ruff": {
@@ -42,7 +43,7 @@
     },
     "mypy": {
       "command": "cd backend && uv run mypy app",
-      "result": "passed for 86 source files",
+      "result": "passed for 87 source files",
       "verified_at": "2026-10-15"
     },
     "frontend_lint": {
@@ -150,6 +151,10 @@
       "command": "SEARCHINTEL_TEST_QDRANT_URL=http://127.0.0.1:<isolated-port> uv run pytest -q tests/integration/test_qdrant_tenant_isolation.py",
       "result": "1 passed against fresh qdrant/qdrant:v1.12.6; tenant A and B with shared project/website identifiers each retrieved only their own chunk; unique test collection deleted and test container removed",
       "verified_at": "2026-10-15"
+    },
+    "crawler_dns_pinning": {
+      "result": "controlled HTTP server test connected through the validated IP and preserved the URL Host; simulated public-to-private DNS rebinding was rejected at socket connection; browser crawl/audit/RAG flow passed; external website not crawled",
+      "verified_at": "2026-10-15"
     }
   },
   "last_verified_checkpoint": {
@@ -167,13 +172,18 @@
       "frontend/e2e/dashboard.spec.ts",
       "backend/app/auth.py",
       "backend/app/core/rate_limit.py",
+      "backend/app/crawler/pinned_transport.py",
+      "backend/tests/test_worker_safety.py",
+      "backend/tests/integration/test_qdrant_tenant_isolation.py",
       "backend/tests/test_auth.py",
+      "backend/pyproject.toml",
+      "backend/uv.lock",
       "docs/SECURITY.md",
       ".env.example"
     ],
-    "local_commit": "cd64cc4 feat: add Redis-backed API rate limits"
+    "local_commit": "00ba5dd security: harden metadata and local URL checks"
   },
-  "next_action": "Implement safe crawler DNS pinning, then run authenticated PostgreSQL/Qdrant isolation and performance checks.",
+  "next_action": "Verify the authenticated API-to-Qdrant tenant boundary; prepare a read-only legacy membership audit before designing any reviewed backfill, then profile performance.",
   "environment_limitations": [
     "The original Git metadata remains preserved at /tmp/searchintel-preserve-20261015/git-original-live with seven missing blobs and no remote; clean local snapshot history is used.",
     "Full prefork crawl/search/RAG/audit passed on Linux/Python 3.12. Host macOS/Python 3.14 had a Celery prefork tracer crash; use the documented solo pool on this host.",
