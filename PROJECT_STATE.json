@@ -1,8 +1,8 @@
 {
   "project": "SearchIntel AI",
   "updated_at": "2026-10-15",
-  "current_phase": "phase_13_legacy_membership_audit_and_performance",
-  "current_task": "review_legacy_membership_backfill_and_performance_profile",
+  "current_phase": "phase_14_competitor_gap_review_and_product_validation",
+  "current_task": "run_project_membership_audit_when_database_is_available_and_continue_competitor_quality",
   "run_status": "in_progress",
   "completed_phases": [
     "phase_00_recovery",
@@ -21,11 +21,14 @@
     "phase_07_linux_prefork_full_workflow",
     "phase_11_redis_backed_api_rate_limits",
     "phase_11_crawler_dns_pinning",
-    "phase_12_authenticated_postgresql_qdrant_isolation"
+    "phase_12_authenticated_postgresql_qdrant_isolation",
+    "phase_13_read_only_legacy_membership_audit_tool",
+    "phase_14_evidence_linked_competitor_gap_review"
   ],
   "blocked_phases": [],
   "pending_tasks": [
-    "review_legacy_tenant_membership_backfill",
+    "run_read_only_audit_against_project_postgresql_when_available",
+    "review_explicit_legacy_user_to_tenant_mappings_before_backfill",
     "profile_performance_and_resource_usage",
     "add_streaming_and_run_real_llm_smoke_only_with_credentials_and_authorization",
     "validate_semantic_competitor_match_quality_with_configured_sentence_transformer",
@@ -34,7 +37,7 @@
   "verified_tests": {
     "pytest": {
       "command": "cd backend && uv run pytest -q",
-      "result": "58 passed, 2 skipped (opt-in PostgreSQL/Qdrant integration tests without service URLs); one Starlette/httpx TestClient deprecation warning",
+      "result": "60 passed, 3 skipped (opt-in PostgreSQL/Qdrant integrations without service URLs and opt-in PostgreSQL legacy audit); one Starlette/httpx TestClient deprecation warning",
       "verified_at": "2026-10-15"
     },
     "ruff": {
@@ -44,7 +47,7 @@
     },
     "mypy": {
       "command": "cd backend && uv run mypy app",
-      "result": "passed for 87 source files",
+      "result": "passed for 89 source files",
       "verified_at": "2026-10-15"
     },
     "frontend_lint": {
@@ -158,6 +161,25 @@
       "result": "2 passed; authenticated owner search retrieved own vector, foreign-project lookup returned 404, and a mismatched-tenant vector sharing the second tenant project ID was filtered out; Redis session storage used the test double; test containers removed",
       "verified_at": "2026-10-15"
     },
+    "legacy_membership_audit_fixture": {
+      "command": "cd backend && uv run pytest -q tests/test_legacy_membership_audit.py",
+      "result": "2 passed; CLI JSON, counts, SQLite read-only behavior, row preservation, and refusal to create missing database tested. Project database audit not executed because configured localhost PostgreSQL was unavailable.",
+      "verified_at": "2026-10-15"
+    },
+    "competitor_gap_review": {
+      "result": "Competitor-only topics return evidence-based human-review action; dashboard shows page count, match method, and source evidence. Backend suite and 3 Playwright tests pass; no demand/rank/traffic claim is made.",
+      "verified_at": "2026-10-15"
+    },
+    "legacy_membership_audit": {
+      "command": "cd backend && uv run pytest -q tests/test_legacy_membership_audit.py",
+      "result": "2 passed, 1 skipped in the regular suite; SQLite read-only behavior and missing-file refusal verified. The opt-in PostgreSQL read-only transaction test passed separately against a fresh PostgreSQL 16 container migrated through 20261015_0003. Actual project DB audit was not run because configured localhost:5432 PostgreSQL refused the connection.",
+      "verified_at": "2026-10-15"
+    },
+    "legacy_membership_audit_postgresql_integration": {
+      "command": "Disposable PostgreSQL 16 container; DATABASE_URL=<isolated-test-db> uv run alembic upgrade head; SEARCHINTEL_TEST_DATABASE_URL=<isolated-test-db> uv run pytest -q tests/test_legacy_membership_audit.py::test_legacy_membership_audit_uses_read_only_postgresql_transaction",
+      "result": "1 passed; migrated through 20261015_0003, inserted a temporary tenant, confirmed the audit reports it without a membership, and deleted the fixture. The test container was removed. This did not read the configured project database.",
+      "verified_at": "2026-10-15"
+    },
     "crawler_dns_pinning": {
       "result": "controlled HTTP server test connected through the validated IP and preserved the URL Host; simulated public-to-private DNS rebinding was rejected at socket connection; browser crawl/audit/RAG flow passed; external website not crawled",
       "verified_at": "2026-10-15"
@@ -183,14 +205,22 @@
       "backend/tests/integration/test_qdrant_tenant_isolation.py",
       "backend/tests/integration/test_authenticated_qdrant_isolation.py",
       "backend/tests/test_auth.py",
+      "backend/app/maintenance/legacy_memberships.py",
+      "backend/tests/test_legacy_membership_audit.py",
+      "backend/app/cli.py",
+      "backend/app/schemas/competitors.py",
+      "backend/app/services/competitor_intelligence.py",
+      "backend/tests/test_competitor_intelligence.py",
+      "frontend/app/page.tsx",
+      "frontend/e2e/dashboard.spec.ts",
       "backend/pyproject.toml",
       "backend/uv.lock",
       "docs/SECURITY.md",
       ".env.example"
     ],
-    "local_commit": "c4e0a86 test: exercise authenticated PostgreSQL Qdrant search isolation"
+      "local_commit": "e97ee1a feat: add read-only tenant audit and competitor review guidance"
   },
-  "next_action": "Prepare a read-only audit of legacy tenants lacking memberships; use its evidence to design a reviewed backfill, then profile performance.",
+  "next_action": "Run the read-only membership audit when project PostgreSQL is available; review trusted user-to-tenant mappings before any backfill, then profile performance.",
   "environment_limitations": [
     "The original Git metadata remains preserved at /tmp/searchintel-preserve-20261015/git-original-live with seven missing blobs and no remote; clean local snapshot history is used.",
     "Full prefork crawl/search/RAG/audit passed on Linux/Python 3.12. Host macOS/Python 3.14 had a Celery prefork tracer crash; use the documented solo pool on this host.",

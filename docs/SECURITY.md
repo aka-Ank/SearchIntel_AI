@@ -16,6 +16,8 @@ Each registered user must have a `tenant_memberships` row for a tenant. Creating
 
 Existing tenants are not automatically assigned to new accounts. Before enabling authentication against a database with legacy tenant data, run an explicit, reviewed membership backfill that maps known users to the correct tenants. Do not infer ownership from a client-supplied tenant ID.
 
+`python -m app.cli audit-legacy-memberships` reports tenants with no memberships and their project/site counts. It is read-only and does not infer which user should own a tenant. Review its output against trusted ownership records before preparing membership changes.
+
 Relational queries and vector retrieval retain tenant/project filters. Worker dispatch is only initiated after the authenticated API verifies the caller's membership and role; task payloads contain persisted job IDs, and workers resolve the tenant/project/site from the database.
 
 ## Remaining security work

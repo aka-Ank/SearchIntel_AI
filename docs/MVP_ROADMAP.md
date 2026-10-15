@@ -6,7 +6,7 @@
 
 ## Stage 1 — Baseline verification
 
-**Local and controlled service verification complete.** 54 backend tests, Ruff, mypy, frontend lint/typecheck/build, and SQLite/PostgreSQL migrations through `20261015_0003` pass. A controlled Docker stack has run PostgreSQL, Redis, and Qdrant.
+**Local and controlled service verification complete.** 60 backend tests pass, with three opt-in PostgreSQL/Qdrant or audit integration tests skipped unless service URLs are configured. Ruff, mypy, frontend lint/typecheck/build, and SQLite/PostgreSQL migrations through `20261015_0003` pass. Controlled Docker runs have exercised PostgreSQL, Redis, and Qdrant.
 
 ## Stage 2 — Background crawl infrastructure
 
@@ -45,7 +45,7 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 
 ## Stage 6 — Authentication and tenant roles
 
-**Implemented and verified locally with SQLite, PostgreSQL, Redis, and browser E2E.** FastAPI Users provides registration, password hashing, opaque Redis-backed cookie sessions, logout revocation, and current-user lookup. Alembic `20261015_0003` adds users and tenant memberships. Owner/admin member routes grant viewer/editor/admin roles to registered users. Cookie writes require CSRF. Protected routes enforce tenant membership and minimum roles. The 58-test suite, Ruff, mypy, frontend checks, SQLite/PostgreSQL migrations, PostgreSQL cross-tenant checks, Redis logout replay rejection, browser auth flows, Redis-backed API throttling, and authenticated PostgreSQL/Qdrant search isolation pass. Legacy membership backfill remains open.
+**Implemented and verified locally with SQLite, PostgreSQL, Redis, and browser E2E.** FastAPI Users provides registration, password hashing, opaque Redis-backed cookie sessions, logout revocation, and current-user lookup. Alembic `20261015_0003` adds users and tenant memberships. Owner/admin member routes grant viewer/editor/admin roles to registered users. Cookie writes require CSRF. Protected routes enforce tenant membership and minimum roles. The 60-test suite, Ruff, mypy, frontend checks, SQLite/PostgreSQL migrations, PostgreSQL cross-tenant checks, Redis logout replay rejection, browser auth flows, Redis-backed API throttling, and authenticated PostgreSQL/Qdrant search isolation pass. Legacy membership mapping review remains open.
 
 ## Stage 7 — Worker reliability and configured LLM adapter
 
@@ -53,12 +53,16 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 
 ## Stage 8 — Competitor coverage foundation
 
-**Initial implementation and browser flow verified.** Competitor websites can be registered, crawled and indexed through the existing worker. The tenant-scoped coverage endpoint compares extracted phrases and links every candidate to crawled-page evidence. Configured sentence-transformers embeddings enable semantic phrase matching; the deterministic default only compares exact phrases. The UI does not claim demand, traffic, rankings, or backlinks. Advanced competitor SEO analysis and recommendations remain open.
+**Evidence-linked coverage and review flow verified.** Competitor websites use the existing crawler/indexer. Tenant-scoped results compare extracted phrases, expose exact/semantic match method and observed page counts, and link to competitor page evidence. Competitor-only phrases receive a human-review prompt, not a demand or publishing claim. Semantic model quality, comparative technical SEO audits, rankings, traffic, and backlinks remain open or unavailable.
+
+## Stage 9 — Legacy membership audit preparation
+
+**Read-only audit command implemented and fixture-tested.** It reports tenants without memberships and related project/site counts, without inferring owners or writing rows. SQLite behavior is fixture-tested, and a separate PostgreSQL 16 integration passed after migration through `20261015_0003`. The configured project PostgreSQL endpoint at `localhost:5432` refused the connection during this run, so no actual project tenant rows have been audited. Any backfill requires a reviewed explicit user-to-tenant mapping.
 
 ## Next stages
 
 - Expand worker fault/load testing and verify throttling behind the intended trusted-proxy configuration.
-- Prepare a read-only legacy membership audit and an explicit reviewable backfill plan; profile resource use.
+- Run the read-only legacy membership audit when PostgreSQL is available, then build a reviewable mapping plan; profile resource use.
 - Add provider streaming and run a real-provider smoke only when credentials and explicit paid-inference authorization exist; retain mock CI.
 - Improve semantic competitor analysis quality, then add comparative SEO findings and recommendations without asserting unavailable search metrics.
 - Continue recommendations, monitoring, graph, GEO, authorized search analytics, performance, deployment, and research phases from the master roadmap.

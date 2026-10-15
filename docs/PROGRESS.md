@@ -9,7 +9,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | Workstream | Status | Evidence |
 |---|---|---|
 | Recovery | Complete | 66 archive files restored and hash checked; see `RECOVERY_REPORT.md`. |
-| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 58 passed and two opt-in service tests skipped without their URLs. |
+| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 60 passed and three opt-in PostgreSQL/Qdrant checks skipped without their service URLs. |
 | Async crawling | Implemented; solo and Linux prefork verified | Celery recovered jobs, tracked progress, and persisted pages. A full Python 3.12 prefork workflow crawled two pages, indexed vectors, searched, answered with a citation, and completed an SEO audit. macOS/Python 3.14 development retains the solo pool. |
 | Technical SEO | Implemented; live local service verified | A worker audited three PostgreSQL pages and persisted 27 findings; status, history, summary, and finding APIs returned the stored results. |
 | Frontend | Implemented; browser E2E passed | Playwright verifies auth, tenant isolation, project and website creation, crawl progress, audit findings, indexed pages, cited mock RAG, competitor crawling/coverage, and API failure display. |
@@ -18,9 +18,10 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | API rate limiting | Implemented; deterministic and Redis-backed E2E verified | Login, registration, crawl enqueue, and audit enqueue use configurable Redis counters. The local Playwright suite exceeded the login threshold and observed `429` with `Retry-After`. |
 | PostgreSQL/Qdrant tenant isolation | Authenticated API integration passed | Fresh PostgreSQL 16 and Qdrant 1.12.6 services ran authenticated search: the owner retrieved their vector, an outsider received `404` on the foreign project, and an intentionally mismatched-tenant vector sharing the outsider's project ID was filtered out. Redis sessions used the test double; live Redis session revocation was verified separately. |
 | Crawler DNS pinning | Implemented; controlled rebinding tests and browser crawl passed | The socket transport resolves and validates answers immediately before connecting to a selected IP, while retaining the original host for HTTP and TLS. Ambient proxy settings are disabled for crawler fetches. |
+| Legacy membership audit | Read-only command implemented and fixture-tested | `python -m app.cli audit-legacy-memberships` reports tenant, project, website, and membership counts. SQLite opens read-only and PostgreSQL starts a read-only transaction; it does not infer owners or write rows. The configured project PostgreSQL was unreachable at `localhost:5432`, so project data was not audited. |
 | Worker reliability | Service tests and full Linux prefork workflow passed | Retry, stale recovery, idempotency, cancellation, and failure persistence tests pass; prefork completed crawl through audit. |
 | LLM provider | Adapter implemented; mock tests passed | OpenAI-compatible provider has bounded retries/timeouts, usage accounting, and optional cost estimates. No live provider call was made. |
-| Competitor intelligence | Initial phrase coverage implemented | Competitors use existing crawl/index flow. Coverage links candidate phrases to crawled pages; configured sentence-transformer embeddings enable semantic matching. |
+| Competitor intelligence | Evidence-linked content-gap review in browser | Competitors use the existing crawl/index flow. Candidate phrases show exact/semantic match method, pages observed, and source links. Competitor-only candidates prompt a human to review fit; they do not imply demand or a publish recommendation. |
 
 ## Implementation details
 
@@ -35,6 +36,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - `/api/v1/health/ready` reports database, Redis, and responding Celery workers separately and returns HTTP 503 until all three are available; behavior is covered with mocked dependencies.
 - Tenant-scoped website history endpoints list up to 20 crawl jobs and audits; the dashboard reads latest crawl/audit/findings from those persisted endpoints and stores tenant selection in browser storage.
 - Redis Lua counters apply configurable IP/category rate limits to login, registration, crawl enqueue, and audit enqueue. They return `429` plus `Retry-After`, and fail closed with `503` when Redis is unavailable. Forwarded IP headers are not trusted.
+- Competitor-only phrase candidates include evidence links, observed page counts, match method, and a review prompt. The dashboard labels exact/semantic comparison and makes clear that competitor coverage does not establish demand or justify publication.
 
 ## Earlier controlled-service checkpoint checks
 
@@ -72,6 +74,20 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - Added an opt-in API integration test that registers two users, creates separate tenants/projects, indexes vectors into a unique Qdrant collection, and searches through authenticated FastAPI routes backed by PostgreSQL.
 - The test verifies owner retrieval, cross-tenant project access denial (`404`), and filtering of a deliberately mismatched-tenant vector whose project ID matches the second tenant's project.
 - Executed against fresh PostgreSQL 16 and Qdrant 1.12.6 containers: migrations through `20261015_0003` passed and both Qdrant integration tests passed. Authentication session storage used the deterministic Redis test double in this run; separate isolated PostgreSQL/Redis tests verified session persistence and logout revocation. All test-owned containers were removed.
+
+## 2026-10-15 — Read-only legacy membership audit
+
+- Added `python -m app.cli audit-legacy-memberships [--format json|csv]`. It reports tenant IDs/names and project, website, and membership counts, highlighting tenants with no memberships without guessing an owner or assigning anyone.
+- SQLite access uses `mode=ro` and refuses a missing database file. PostgreSQL starts a read-only transaction. Fixture tests verify counts, no row changes, and no creation of a missing SQLite file.
+- `cd backend && uv run pytest -q`: **60 passed, 3 skipped** (opt-in PostgreSQL/Qdrant integrations and PostgreSQL audit integration without service URLs); Ruff passed; mypy passed for 89 source files; `uv lock --check` passed.
+- A separate opt-in PostgreSQL test passed against a fresh PostgreSQL 16 container after Alembic upgrade through `20261015_0003`. It verified the read-only audit transaction and temporary fixture reporting; the container was removed afterward. This was not the configured project database.
+- Attempted the audit against the configured project database; the `.env` points to PostgreSQL on `localhost:5432`, where the connection was refused. No project tenant data was read or changed. Re-run when PostgreSQL is available, then review known user-to-tenant mappings before any backfill.
+
+## 2026-10-15 — Competitor gap review UX
+
+- Competitor-only phrase findings now include an evidence-based review action; shared topics omit the action. The dashboard shows the match method, number of crawled competitor pages, all returned evidence links, and the review prompt.
+- The prompt explicitly says that competitor coverage alone does not establish demand or justify publication. The candidate extraction remains deterministic, with optional sentence-transformer similarity and no ranking/traffic metrics.
+- Verification: backend **60 passed, 3 opt-in database tests skipped** in the no-service run, Ruff and mypy passed; frontend lint/typecheck/build passed; `cd frontend && npm run e2e:local` **3 passed**, including the competitor review prompt.
 
 ## 2026-10-15 — Crawler DNS pinning
 
@@ -113,6 +129,6 @@ Historical checkpoint note: this entry predates the 2026-10-15 repository preser
 
 ## Remaining work
 
-- Review an explicit legacy membership audit/backfill plan; profile performance and resource usage.
+- Run the read-only membership audit when PostgreSQL is available; review explicit ownership mappings before any backfill and profile resource usage.
 - A live LLM smoke test and streaming need configured credentials and explicit paid-inference authorization.
-- Extend competitor topic quality, competitive SEO audits, and recommendations. No ranking, traffic, backlink, or keyword-demand claims are made.
+- Extend semantic competitor topic quality and comparative technical SEO audits. No ranking, traffic, backlink, or keyword-demand claims are made.

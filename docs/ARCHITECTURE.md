@@ -51,7 +51,7 @@ Services coordinate implemented use cases:
 
 Services accept explicit tenant and project context. Every content item and search filter carries tenant/project IDs. Competitor phrase coverage only uses successfully crawled project pages and includes source-page evidence.
 
-Competitor coverage extracts bounded unigram, bigram, and trigram candidates from stored page titles and text. Exact phrase overlap is the offline default. When the configured provider is sentence-transformers, the service also embeds candidate phrases and treats cosine similarity at or above `0.82` as semantic overlap; each response identifies the match method and includes page evidence. This is a content-coverage signal, not a measure of search demand, rank, or traffic.
+Competitor coverage extracts bounded unigram, bigram, and trigram candidates from stored page titles and text. Exact phrase overlap is the offline default. When the configured provider is sentence-transformers, the service also embeds candidate phrases and treats cosine similarity at or above `0.82` as semantic overlap; each response identifies the match method and includes page evidence. Competitor-only phrases carry a review prompt and page count; the dashboard does not present them as proven demand or an instruction to publish. This is a content-coverage signal, not a measure of search demand, rank, or traffic.
 
 ### Crawler
 

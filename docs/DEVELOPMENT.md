@@ -15,4 +15,8 @@ Install frontend dependencies with `cd frontend && npm ci`; run the dashboard wi
 - `cd backend && uv run mypy app`
 - `cd frontend && npm run lint && npm run typecheck && npm run build`
 
+## Read-only legacy membership audit
+
+After configuring a reachable project database and applying migrations, run `cd backend && uv run python -m app.cli audit-legacy-memberships --format json` (or `--format csv`). The command reports tenants and project/site/membership counts; it does not infer ownership or write memberships. SQLite is opened in read-only mode and PostgreSQL runs a read-only transaction. Review trusted user-to-tenant mappings before preparing any backfill.
+
 Use test fixtures and controlled local services. Do not crawl external websites or make paid model calls from tests.

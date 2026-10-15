@@ -15,19 +15,19 @@ Updated: 2026-10-15
 - Crawler SSRF hardening: validated DNS answers are pinned to the socket connection; unsafe redirects and private destinations are rejected. Controlled DNS-rebinding tests and the fixture-site browser crawl pass. No external website crawl was performed.
 - Vector isolation: isolated PostgreSQL/Qdrant integration verified authenticated owner retrieval, foreign project denial, and filtering of a mismatched-tenant vector. Redis session persistence/revocation was checked separately against live Redis.
 - LLM integration: OpenAI-compatible provider supports environment credentials, configurable model, timeouts/retries, token usage and optional cost estimates. Mock provider tests pass; no live inference or streaming was run.
-- Competitor intelligence: competitor sites use the existing crawler/indexer. Tenant-scoped coverage compares crawled topic phrases, links evidence, and supports semantic similarity when sentence-transformers is configured. No search demand, rank, traffic, or backlink claims are made.
+- Competitor intelligence: competitor sites use the existing crawler/indexer. Tenant-scoped coverage compares crawled topic phrases, displays match method, page counts and evidence links, and offers a cautious human-review action for competitor-only phrases. No search demand, rank, traffic, or backlink claims are made.
 
 ## Verified checks
 
 - `cd backend && uv sync --extra dev` — passed.
-- `cd backend && uv run pytest -q` — 58 passed, 2 opt-in PostgreSQL/Qdrant integration tests skipped without service URLs; one Starlette/httpx deprecation warning.
+- `cd backend && uv run pytest -q` — 60 passed, 3 opt-in PostgreSQL/Qdrant/audit integration tests skipped without service URLs; one Starlette/httpx deprecation warning. The PostgreSQL audit integration separately passed against a disposable PostgreSQL 16 database.
 - `cd backend && uv run ruff check app tests` — passed.
-- `cd backend && uv run mypy app` — passed (87 source files).
+- `cd backend && uv run mypy app` — passed (89 source files).
 - `cd frontend && npm run lint`, `npm run typecheck`, and `npm run build` — passed.
 - `cd frontend && npm audit` — passed; zero reported vulnerabilities.
 - Browser workflow: loaded the live integration project, three persisted pages, completed crawl counters, and 27 audit findings after reload.
 - SQLite and disposable PostgreSQL 16 Alembic upgrades — passed through `20261015_0003`.
-- `cd frontend && npm run e2e:local` — 3 Playwright tests passed using local fixture services (SQLite/Redis/solo worker), including real Redis throttling and the pinned crawler transport; does not exercise PostgreSQL/Qdrant.
+- `cd frontend && npm run e2e:local` — 3 Playwright tests passed using local fixture services (SQLite/Redis/solo worker), including real Redis throttling, the pinned crawler transport, and competitor content-gap review; does not exercise PostgreSQL/Qdrant.
 - Authenticated PostgreSQL/Qdrant integration — 2 passed against fresh PostgreSQL 16 and Qdrant 1.12.6, including vector-store and API-level isolation; migrations passed through `20261015_0003`, and test containers were removed. Redis sessions used the deterministic test double in this run.
 - Controlled resolver tests — crawler connected to the approved loopback IP while preserving `Host`, and rejected a simulated public-to-private DNS answer before connecting.
 - Controlled live workflow: readiness, Redis/Celery worker, PostgreSQL pages, Qdrant vectors, hybrid search, grounded mock RAG with citation, SEO audit, and cross-tenant `404` passed against a loopback fixture.
