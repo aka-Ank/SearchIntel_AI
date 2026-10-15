@@ -16,6 +16,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | Live service E2E | Controlled stack passed | Isolated Docker Compose project with PostgreSQL, Redis, and Qdrant. Existing `seo-*` containers and volumes were preserved. |
 | Authentication | Implemented; SQLite and PostgreSQL checks passed | FastAPI Users, CSRF, tenant roles, Alembic `20261015_0003`, and PostgreSQL cross-tenant denial verified. |
 | API rate limiting | Implemented; deterministic and Redis-backed E2E verified | Login, registration, crawl enqueue, and audit enqueue use configurable Redis counters. The local Playwright suite exceeded the login threshold and observed `429` with `Retry-After`. |
+| Qdrant tenant filter | Isolated service integration passed | A fresh Qdrant 1.12.6 container stored chunks for two tenants sharing project/website IDs; each filtered query returned only that tenant's chunk. Authenticated API-to-Qdrant coverage remains open. |
 | Worker reliability | Service tests and full Linux prefork workflow passed | Retry, stale recovery, idempotency, cancellation, and failure persistence tests pass; prefork completed crawl through audit. |
 | LLM provider | Adapter implemented; mock tests passed | OpenAI-compatible provider has bounded retries/timeouts, usage accounting, and optional cost estimates. No live provider call was made. |
 | Competitor intelligence | Initial phrase coverage implemented | Competitors use existing crawl/index flow. Coverage links candidate phrases to crawled pages; configured sentence-transformer embeddings enable semantic matching. |
@@ -59,6 +60,12 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - Verification: `cd backend && uv run pytest -q` — **54 passed** (one existing Starlette/httpx TestClient deprecation warning); Ruff passed; mypy passed for 86 source files. `cd frontend && npm run lint && npm run typecheck` passed. `cd frontend && npm run e2e:local` — **3 passed**, including actual Redis throttling.
 - No database migration was needed. Rate limiting is now verified locally; no claims are made about production proxy configuration or distributed deployment behavior beyond Redis atomicity.
 
+## 2026-10-15 — Qdrant tenant-filter integration
+
+- Added an opt-in integration test that creates a unique temporary collection, indexes two tenant-owned chunks with colliding project and website IDs, checks each tenant-filtered vector query returns only its own chunk, and deletes the collection.
+- Executed against a fresh isolated `qdrant/qdrant:v1.12.6` container: **1 passed**. The test-owned container was removed; normal backend tests do not require Qdrant and report this test skipped unless `SEARCHINTEL_TEST_QDRANT_URL` is configured.
+- This validates Qdrant payload filtering at the vector-store layer. A full authenticated API request through PostgreSQL and Qdrant remains unverified.
+
 ## Historical first checkpoint gaps (superseded by the verified updates below)
 
 1. Resolve and verify the Celery prefork runtime on the target Python version; this live check used Celery's solo pool.
@@ -93,6 +100,6 @@ Historical checkpoint note: this entry predates the 2026-10-15 repository preser
 ## Remaining work
 
 - Plan an explicit membership backfill for existing tenants; add DNS pinning to close the remaining rebinding risk.
-- Verify broader PostgreSQL/Qdrant cross-tenant isolation; profile performance and resource usage.
+- Verify the authenticated API-to-Qdrant tenant boundary end to end; profile performance and resource usage.
 - A live LLM smoke test and streaming need configured credentials and explicit paid-inference authorization.
 - Extend competitor topic quality, competitive SEO audits, and recommendations. No ranking, traffic, backlink, or keyword-demand claims are made.

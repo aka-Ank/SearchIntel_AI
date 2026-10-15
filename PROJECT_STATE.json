@@ -24,7 +24,7 @@
   "blocked_phases": [],
   "pending_tasks": [
     "plan_reviewed_legacy_tenant_membership_backfill_and_dns_pinning",
-    "verify_broader_postgresql_qdrant_cross_tenant_isolation_and_profile_performance",
+    "verify_authenticated_api_to_qdrant_tenant_boundary_and_profile_performance",
     "add_streaming_and_run_real_llm_smoke_only_with_credentials_and_authorization",
     "validate_semantic_competitor_match_quality_with_configured_sentence_transformer",
     "competitor_seo_recommendations_and_advanced_roadmap"
@@ -144,6 +144,11 @@
     "redis_api_rate_limits": {
       "command": "cd backend && uv run pytest -q; cd frontend && npm run e2e:local",
       "result": "registration throttle and fail-closed Redis outage pass with deterministic Redis tests; Playwright exceeded the real Redis-backed login limit and received 429 with Retry-After; limits cover login, registration, crawl enqueue, and audit enqueue",
+      "verified_at": "2026-10-15"
+    },
+    "qdrant_tenant_filter_integration": {
+      "command": "SEARCHINTEL_TEST_QDRANT_URL=http://127.0.0.1:<isolated-port> uv run pytest -q tests/integration/test_qdrant_tenant_isolation.py",
+      "result": "1 passed against fresh qdrant/qdrant:v1.12.6; tenant A and B with shared project/website identifiers each retrieved only their own chunk; unique test collection deleted and test container removed",
       "verified_at": "2026-10-15"
     }
   },
