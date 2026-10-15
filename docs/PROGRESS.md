@@ -9,14 +9,14 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | Workstream | Status | Evidence |
 |---|---|---|
 | Recovery | Complete | 66 archive files restored and hash checked; see `RECOVERY_REPORT.md`. |
-| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 58 passed and one opt-in Qdrant test skipped without its service URL. |
+| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 58 passed and two opt-in service tests skipped without their URLs. |
 | Async crawling | Implemented; solo and Linux prefork verified | Celery recovered jobs, tracked progress, and persisted pages. A full Python 3.12 prefork workflow crawled two pages, indexed vectors, searched, answered with a citation, and completed an SEO audit. macOS/Python 3.14 development retains the solo pool. |
 | Technical SEO | Implemented; live local service verified | A worker audited three PostgreSQL pages and persisted 27 findings; status, history, summary, and finding APIs returned the stored results. |
 | Frontend | Implemented; browser E2E passed | Playwright verifies auth, tenant isolation, project and website creation, crawl progress, audit findings, indexed pages, cited mock RAG, competitor crawling/coverage, and API failure display. |
 | Live service E2E | Controlled stack passed | Isolated Docker Compose project with PostgreSQL, Redis, and Qdrant. Existing `seo-*` containers and volumes were preserved. |
 | Authentication | Implemented; SQLite and PostgreSQL checks passed | FastAPI Users, CSRF, tenant roles, Alembic `20261015_0003`, and PostgreSQL cross-tenant denial verified. |
 | API rate limiting | Implemented; deterministic and Redis-backed E2E verified | Login, registration, crawl enqueue, and audit enqueue use configurable Redis counters. The local Playwright suite exceeded the login threshold and observed `429` with `Retry-After`. |
-| Qdrant tenant filter | Isolated service integration passed | A fresh Qdrant 1.12.6 container stored chunks for two tenants sharing project/website IDs; each filtered query returned only that tenant's chunk. Authenticated API-to-Qdrant coverage remains open. |
+| PostgreSQL/Qdrant tenant isolation | Authenticated API integration passed | Fresh PostgreSQL 16 and Qdrant 1.12.6 services ran authenticated search: the owner retrieved their vector, an outsider received `404` on the foreign project, and an intentionally mismatched-tenant vector sharing the outsider's project ID was filtered out. Redis sessions used the test double; live Redis session revocation was verified separately. |
 | Crawler DNS pinning | Implemented; controlled rebinding tests and browser crawl passed | The socket transport resolves and validates answers immediately before connecting to a selected IP, while retaining the original host for HTTP and TLS. Ambient proxy settings are disabled for crawler fetches. |
 | Worker reliability | Service tests and full Linux prefork workflow passed | Retry, stale recovery, idempotency, cancellation, and failure persistence tests pass; prefork completed crawl through audit. |
 | LLM provider | Adapter implemented; mock tests passed | OpenAI-compatible provider has bounded retries/timeouts, usage accounting, and optional cost estimates. No live provider call was made. |
@@ -65,13 +65,19 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 
 - Added an opt-in integration test that creates a unique temporary collection, indexes two tenant-owned chunks with colliding project and website IDs, checks each tenant-filtered vector query returns only its own chunk, and deletes the collection.
 - Executed against a fresh isolated `qdrant/qdrant:v1.12.6` container: **1 passed**. The test-owned container was removed; normal backend tests do not require Qdrant and report this test skipped unless `SEARCHINTEL_TEST_QDRANT_URL` is configured.
-- This validates Qdrant payload filtering at the vector-store layer. A full authenticated API request through PostgreSQL and Qdrant remains unverified.
+- This focused check validates Qdrant payload filtering at the vector-store layer; the authenticated PostgreSQL/Qdrant request path is verified in the following checkpoint.
+
+## 2026-10-15 — Authenticated PostgreSQL-to-Qdrant isolation
+
+- Added an opt-in API integration test that registers two users, creates separate tenants/projects, indexes vectors into a unique Qdrant collection, and searches through authenticated FastAPI routes backed by PostgreSQL.
+- The test verifies owner retrieval, cross-tenant project access denial (`404`), and filtering of a deliberately mismatched-tenant vector whose project ID matches the second tenant's project.
+- Executed against fresh PostgreSQL 16 and Qdrant 1.12.6 containers: migrations through `20261015_0003` passed and both Qdrant integration tests passed. Authentication session storage used the deterministic Redis test double in this run; separate isolated PostgreSQL/Redis tests verified session persistence and logout revocation. All test-owned containers were removed.
 
 ## 2026-10-15 — Crawler DNS pinning
 
 - Added a pinned HTTPX transport backed by httpcore. At socket-open time it resolves the destination again, rejects unsafe answers, and connects directly to the selected vetted IP; the URL hostname remains unchanged for the HTTP `Host` header and TLS SNI. Environment proxy variables are not honored by the crawler transport.
 - Validation covered a controlled HTTP server reached through a test hostname, preservation of the original `Host`, a simulated public-to-private DNS change rejected before connection, the full backend suite, and the Playwright crawl/audit/RAG flow.
-- `cd backend && uv run pytest -q`: **58 passed, 1 skipped** (opt-in Qdrant integration without URL); Ruff passed; mypy passed for 87 source files; `uv lock --check` passed. `cd frontend && npm run lint && npm run typecheck` passed; `cd frontend && npm run e2e:local`: **3 passed**.
+- `cd backend && uv run pytest -q`: **58 passed, 2 skipped** (opt-in PostgreSQL/Qdrant integrations without service URLs); Ruff passed; mypy passed for 87 source files; `uv lock --check` passed. `cd frontend && npm run lint && npm run typecheck` passed; `cd frontend && npm run e2e:local`: **3 passed**.
 - No external website was crawled. The rebinding test uses controlled resolver answers, so this establishes the transport behavior under the tested cases rather than a broad external security certification.
 
 ## Historical first checkpoint gaps (superseded by the verified updates below)
@@ -107,7 +113,6 @@ Historical checkpoint note: this entry predates the 2026-10-15 repository preser
 
 ## Remaining work
 
-- Plan an explicit membership backfill for existing tenants; verify the authenticated API-to-Qdrant boundary and profile performance.
-- Verify the authenticated API-to-Qdrant tenant boundary end to end; profile performance and resource usage.
+- Review an explicit legacy membership audit/backfill plan; profile performance and resource usage.
 - A live LLM smoke test and streaming need configured credentials and explicit paid-inference authorization.
 - Extend competitor topic quality, competitive SEO audits, and recommendations. No ranking, traffic, backlink, or keyword-demand claims are made.

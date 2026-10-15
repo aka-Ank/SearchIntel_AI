@@ -13,14 +13,14 @@ Updated: 2026-10-15
 - Controlled integration: isolated PostgreSQL, Redis, and Qdrant containers completed migration, crawl, indexing, hybrid retrieval, grounded mock RAG, and SEO audit. Existing stopped `seo-*` containers and volumes were left untouched.
 - Authentication: FastAPI Users registration/login/logout with Redis-backed opaque sessions, HttpOnly, SameSite cookies, and CSRF validation; membership-backed tenant roles protect project, website, crawl, audit, page, index, search, and RAG routes. SQLite tests, PostgreSQL/Redis session revocation and tenant checks, browser E2E, and Redis-backed login/registration/crawl/audit throttles pass. A unique `AUTH_SECRET` of at least 32 characters is required. Legacy membership backfill remains open.
 - Crawler SSRF hardening: validated DNS answers are pinned to the socket connection; unsafe redirects and private destinations are rejected. Controlled DNS-rebinding tests and the fixture-site browser crawl pass. No external website crawl was performed.
-- Vector isolation: an isolated Qdrant integration verified tenant filters even with shared project and website identifiers. Authenticated API-to-Qdrant integration remains open.
+- Vector isolation: isolated PostgreSQL/Qdrant integration verified authenticated owner retrieval, foreign project denial, and filtering of a mismatched-tenant vector. Redis session persistence/revocation was checked separately against live Redis.
 - LLM integration: OpenAI-compatible provider supports environment credentials, configurable model, timeouts/retries, token usage and optional cost estimates. Mock provider tests pass; no live inference or streaming was run.
 - Competitor intelligence: competitor sites use the existing crawler/indexer. Tenant-scoped coverage compares crawled topic phrases, links evidence, and supports semantic similarity when sentence-transformers is configured. No search demand, rank, traffic, or backlink claims are made.
 
 ## Verified checks
 
 - `cd backend && uv sync --extra dev` — passed.
-- `cd backend && uv run pytest -q` — 58 passed, 1 opt-in Qdrant integration skipped without its URL; one Starlette/httpx deprecation warning.
+- `cd backend && uv run pytest -q` — 58 passed, 2 opt-in PostgreSQL/Qdrant integration tests skipped without service URLs; one Starlette/httpx deprecation warning.
 - `cd backend && uv run ruff check app tests` — passed.
 - `cd backend && uv run mypy app` — passed (87 source files).
 - `cd frontend && npm run lint`, `npm run typecheck`, and `npm run build` — passed.
@@ -28,7 +28,7 @@ Updated: 2026-10-15
 - Browser workflow: loaded the live integration project, three persisted pages, completed crawl counters, and 27 audit findings after reload.
 - SQLite and disposable PostgreSQL 16 Alembic upgrades — passed through `20261015_0003`.
 - `cd frontend && npm run e2e:local` — 3 Playwright tests passed using local fixture services (SQLite/Redis/solo worker), including real Redis throttling and the pinned crawler transport; does not exercise PostgreSQL/Qdrant.
-- `SEARCHINTEL_TEST_QDRANT_URL=http://127.0.0.1:<isolated-port> uv run pytest -q tests/integration/test_qdrant_tenant_isolation.py` — 1 passed against fresh Qdrant 1.12.6; test collection and container removed.
+- Authenticated PostgreSQL/Qdrant integration — 2 passed against fresh PostgreSQL 16 and Qdrant 1.12.6, including vector-store and API-level isolation; migrations passed through `20261015_0003`, and test containers were removed. Redis sessions used the deterministic test double in this run.
 - Controlled resolver tests — crawler connected to the approved loopback IP while preserving `Host`, and rejected a simulated public-to-private DNS answer before connecting.
 - Controlled live workflow: readiness, Redis/Celery worker, PostgreSQL pages, Qdrant vectors, hybrid search, grounded mock RAG with citation, SEO audit, and cross-tenant `404` passed against a loopback fixture.
 - A full isolated Linux/Python 3.12 Celery prefork workflow completed crawl, PostgreSQL persistence, Qdrant indexing, hybrid search, cited mock RAG, and SEO audit. macOS/Python 3.14 development uses the solo pool.

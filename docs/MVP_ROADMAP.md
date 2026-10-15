@@ -45,7 +45,7 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 
 ## Stage 6 — Authentication and tenant roles
 
-**Implemented and verified locally with SQLite, PostgreSQL, Redis, and browser E2E.** FastAPI Users provides registration, password hashing, opaque Redis-backed cookie sessions, logout revocation, and current-user lookup. Alembic `20261015_0003` adds users and tenant memberships. Owner/admin member routes grant viewer/editor/admin roles to registered users. Cookie writes require CSRF. Protected routes enforce tenant membership and minimum roles. The 54-test suite, Ruff, mypy, frontend checks, SQLite/PostgreSQL migrations, PostgreSQL cross-tenant checks, Redis logout replay rejection, browser auth flows, and Redis-backed API throttling pass. Legacy membership backfill remains open.
+**Implemented and verified locally with SQLite, PostgreSQL, Redis, and browser E2E.** FastAPI Users provides registration, password hashing, opaque Redis-backed cookie sessions, logout revocation, and current-user lookup. Alembic `20261015_0003` adds users and tenant memberships. Owner/admin member routes grant viewer/editor/admin roles to registered users. Cookie writes require CSRF. Protected routes enforce tenant membership and minimum roles. The 58-test suite, Ruff, mypy, frontend checks, SQLite/PostgreSQL migrations, PostgreSQL cross-tenant checks, Redis logout replay rejection, browser auth flows, Redis-backed API throttling, and authenticated PostgreSQL/Qdrant search isolation pass. Legacy membership backfill remains open.
 
 ## Stage 7 — Worker reliability and configured LLM adapter
 
@@ -58,7 +58,7 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 ## Next stages
 
 - Expand worker fault/load testing and verify throttling behind the intended trusted-proxy configuration.
-- Plan an explicit legacy membership backfill and verify authenticated API-to-Qdrant tenant isolation end to end.
+- Prepare a read-only legacy membership audit and an explicit reviewable backfill plan; profile resource use.
 - Add provider streaming and run a real-provider smoke only when credentials and explicit paid-inference authorization exist; retain mock CI.
 - Improve semantic competitor analysis quality, then add comparative SEO findings and recommendations without asserting unavailable search metrics.
 - Continue recommendations, monitoring, graph, GEO, authorized search analytics, performance, deployment, and research phases from the master roadmap.
