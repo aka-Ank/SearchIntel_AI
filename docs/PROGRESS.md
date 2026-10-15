@@ -95,6 +95,12 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - Verification: `tests/test_competitor_intelligence.py` **2 passed**; full backend suite **61 passed, 3 skipped**; Ruff, mypy, and all **3 Playwright E2E** tests passed.
 - Semantic similarity was not executed: the optional `sentence-transformers` package and configured model weights are absent locally. No model download was attempted.
 
+## 2026-10-15 — Competitor extraction microbenchmark
+
+- Added `backend/scripts/profile_competitor_topics.py` for a repeatable synthetic profile: `cd backend && uv run python -m scripts.profile_competitor_topics`.
+- On Python 3.14.6, 1,000 synthetic pages with 875 words each (875,000 total) produced 95 distinct candidates in 3.076 seconds with 0.12 MiB traced peak allocation on the latest run.
+- This measures `_topic_counts` only and excludes database access, semantic embeddings, crawling, indexing, and frontend work. It is a bounded component check, not a whole-service throughput or production capacity claim. Full crawl-to-search resource profiling remains pending.
+
 ## 2026-10-15 — Crawler DNS pinning
 
 - Added a pinned HTTPX transport backed by httpcore. At socket-open time it resolves the destination again, rejects unsafe answers, and connects directly to the selected vetted IP; the URL hostname remains unchanged for the HTTP `Host` header and TLS SNI. Environment proxy variables are not honored by the crawler transport.

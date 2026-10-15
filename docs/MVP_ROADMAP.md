@@ -63,6 +63,7 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 
 - Expand worker fault/load testing and verify throttling behind the intended trusted-proxy configuration.
 - Run the read-only legacy membership audit when PostgreSQL is available, then build a reviewable mapping plan; profile resource use.
+- A synthetic topic-extraction microbenchmark is available, but does not measure end-to-end service capacity; profile the controlled crawl-to-search workflow separately.
 - Add provider streaming and run a real-provider smoke only when credentials and explicit paid-inference authorization exist; retain mock CI.
 - Improve semantic competitor analysis quality, then add comparative SEO findings and recommendations without asserting unavailable search metrics.
 - Continue recommendations, monitoring, graph, GEO, authorized search analytics, performance, deployment, and research phases from the master roadmap.

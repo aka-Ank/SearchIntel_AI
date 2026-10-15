@@ -31,6 +31,7 @@ Updated: 2026-10-15
 - Authenticated PostgreSQL/Qdrant integration — 2 passed against fresh PostgreSQL 16 and Qdrant 1.12.6, including vector-store and API-level isolation; migrations passed through `20261015_0003`, and test containers were removed. Redis sessions used the deterministic test double in this run.
 - Controlled resolver tests — crawler connected to the approved loopback IP while preserving `Host`, and rejected a simulated public-to-private DNS answer before connecting.
 - Competitor phrase matching uses token boundaries; unit tests reject substring false positives. Real sentence-transformer matching remains unverified because the optional package and model weights are not locally available.
+- Synthetic competitor topic extraction profile: 1,000 pages / 875,000 words took 3.076 seconds and 0.12 MiB traced peak on Python 3.14.6; excludes database/crawl/index/model work and is not capacity evidence.
 - Controlled live workflow: readiness, Redis/Celery worker, PostgreSQL pages, Qdrant vectors, hybrid search, grounded mock RAG with citation, SEO audit, and cross-tenant `404` passed against a loopback fixture.
 - A full isolated Linux/Python 3.12 Celery prefork workflow completed crawl, PostgreSQL persistence, Qdrant indexing, hybrid search, cited mock RAG, and SEO audit. macOS/Python 3.14 development uses the solo pool.
 

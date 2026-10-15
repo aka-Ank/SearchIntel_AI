@@ -134,6 +134,8 @@ Structured logs include request ID, tenant ID, project ID, crawl job ID, and tim
 
 `/api/v1/health/ready` performs bounded checks for database connectivity, Redis broker reachability, and at least one responding Celery worker. It returns `503` when any dependency is unavailable; liveness remains separately exposed at `/api/v1/health`.
 
+The developer utility `backend/scripts/profile_competitor_topics.py` profiles lexical candidate extraction over generated text. Its result excludes database, crawl, vector, and model costs; use the controlled service stack for end-to-end capacity measurements.
+
 ## Persistent Crawl-To-Search Flow
 
 ```text

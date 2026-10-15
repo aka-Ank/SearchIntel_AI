@@ -2,7 +2,7 @@
   "project": "SearchIntel AI",
   "updated_at": "2026-10-15",
   "current_phase": "phase_14_competitor_gap_review_and_product_validation",
-  "current_task": "run_project_membership_audit_when_database_is_available_and_continue_competitor_quality",
+  "current_task": "run_project_membership_audit_when_database_is_available_and_profile_end_to_end_resources",
   "run_status": "in_progress",
   "completed_phases": [
     "phase_00_recovery",
@@ -175,6 +175,11 @@
       "result": "2 passed; evidence matching uses token boundaries so a candidate phrase does not match inside a longer token. Full backend suite and dashboard E2E also passed.",
       "verified_at": "2026-10-15"
     },
+    "competitor_topic_extraction_microbenchmark": {
+      "command": "cd backend && uv run python -m scripts.profile_competitor_topics",
+      "result": "Python 3.14.6; 1,000 synthetic pages × 875 words; 875,000 words processed in 3.076 seconds with 0.12 MiB tracemalloc peak; 95 distinct candidates. Measures only _topic_counts and is not an end-to-end capacity result.",
+      "verified_at": "2026-10-15"
+    },
     "legacy_membership_audit": {
       "command": "cd backend && uv run pytest -q tests/test_legacy_membership_audit.py",
       "result": "2 passed, 1 skipped in the regular suite; SQLite read-only behavior and missing-file refusal verified. The opt-in PostgreSQL read-only transaction test passed separately against a fresh PostgreSQL 16 container migrated through 20261015_0003. Actual project DB audit was not run because configured localhost:5432 PostgreSQL refused the connection.",
@@ -202,6 +207,7 @@
       "PROJECT_STATE.json",
       "backend/app/services/competitor_intelligence.py",
       "backend/tests/test_competitor_intelligence.py",
+      "backend/scripts/profile_competitor_topics.py",
       "frontend/e2e/dashboard.spec.ts",
       "backend/app/auth.py",
       "backend/app/core/rate_limit.py",
@@ -223,9 +229,9 @@
       "docs/SECURITY.md",
       ".env.example"
     ],
-      "local_commit": "22a4114 fix: match competitor evidence on phrase boundaries"
+      "local_commit": "cc78b2b chore: add competitor extraction profiler"
   },
-  "next_action": "Run the read-only membership audit when project PostgreSQL is available; review trusted user-to-tenant mappings before any backfill, then profile performance.",
+  "next_action": "Run the read-only membership audit when project PostgreSQL is available; review trusted user-to-tenant mappings before any backfill, and profile crawl-to-search resource use against a controlled service stack.",
   "environment_limitations": [
     "The original Git metadata remains preserved at /tmp/searchintel-preserve-20261015/git-original-live with seven missing blobs and no remote; clean local snapshot history is used.",
     "Full prefork crawl/search/RAG/audit passed on Linux/Python 3.12. Host macOS/Python 3.14 had a Celery prefork tracer crash; use the documented solo pool on this host.",
