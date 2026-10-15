@@ -85,3 +85,21 @@ test("tenant authorization blocks outsiders and dashboard reports network failur
 	await expect(page.getByRole("alert")).toBeVisible({ timeout: 15_000 });
 	expect(tenantId).toBeTruthy();
 });
+
+test("Redis-backed login throttling returns Retry-After when the configured limit is reached", async ({ page }) => {
+	await page.goto("/");
+	const client = await playwrightRequest.newContext({ baseURL: page.url() });
+	let limited = false;
+	for (let attempt = 0; attempt < 12; attempt += 1) {
+		const response = await client.post("/api-proxy/auth/login", {
+			form: { username: `invalid-${attempt}@example.com`, password: "invalid-password" },
+		});
+		if (response.status() === 429) {
+			expect(Number(response.headers()["retry-after"])).toBeGreaterThan(0);
+			limited = true;
+			break;
+		}
+	}
+	expect(limited).toBe(true);
+	await client.dispose();
+});

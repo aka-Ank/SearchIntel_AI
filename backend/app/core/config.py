@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool | None = None
     auth_cookie_samesite: Literal["lax", "strict", "none"] = "strict"
     auth_token_lifetime_seconds: int = Field(default=3600, ge=300, le=86400)
+    auth_login_rate_limit: int = Field(default=10, ge=1, le=1000)
+    auth_login_rate_window_seconds: int = Field(default=300, ge=1, le=86400)
+    auth_register_rate_limit: int = Field(default=5, ge=1, le=1000)
+    auth_register_rate_window_seconds: int = Field(default=3600, ge=1, le=86400)
+    crawl_enqueue_rate_limit: int = Field(default=60, ge=1, le=10000)
+    crawl_enqueue_rate_window_seconds: int = Field(default=3600, ge=1, le=86400)
+    audit_enqueue_rate_limit: int = Field(default=30, ge=1, le=10000)
+    audit_enqueue_rate_window_seconds: int = Field(default=3600, ge=1, le=86400)
     llm_model: str = "gpt-4o-mini"
     llm_api_key: SecretStr | None = None
     llm_api_base_url: str = "https://api.openai.com/v1"

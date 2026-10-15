@@ -2,7 +2,7 @@
   "project": "SearchIntel AI",
   "updated_at": "2026-10-15",
   "current_phase": "phase_11_production_security_hardening",
-  "current_task": "rate_limits_dns_pinning_and_broader_tenant_isolation",
+  "current_task": "dns_pinning_and_broader_tenant_isolation",
   "run_status": "in_progress",
   "completed_phases": [
     "phase_00_recovery",
@@ -18,11 +18,11 @@
     "phase_08_configured_llm_provider_adapter",
     "phase_09_playwright_browser_e2e",
     "phase_10_competitor_coverage_foundation",
-    "phase_07_linux_prefork_full_workflow"
+    "phase_07_linux_prefork_full_workflow",
+    "phase_11_redis_backed_api_rate_limits"
   ],
   "blocked_phases": [],
   "pending_tasks": [
-    "implement_login_and_crawl_rate_limits",
     "plan_reviewed_legacy_tenant_membership_backfill_and_dns_pinning",
     "verify_broader_postgresql_qdrant_cross_tenant_isolation_and_profile_performance",
     "add_streaming_and_run_real_llm_smoke_only_with_credentials_and_authorization",
@@ -32,7 +32,7 @@
   "verified_tests": {
     "pytest": {
       "command": "cd backend && uv run pytest -q",
-      "result": "52 passed; one Starlette/httpx TestClient deprecation warning",
+      "result": "53 passed; one Starlette/httpx TestClient deprecation warning",
       "verified_at": "2026-10-15"
     },
     "ruff": {
@@ -42,7 +42,7 @@
     },
     "mypy": {
       "command": "cd backend && uv run mypy app",
-      "result": "passed for 85 source files",
+      "result": "passed for 86 source files",
       "verified_at": "2026-10-15"
     },
     "frontend_lint": {
@@ -126,7 +126,7 @@
     },
     "playwright_browser_e2e": {
       "command": "cd frontend && npm run e2e:local",
-      "result": "2 passed; local SQLite, Redis container, Celery solo worker, FastAPI, Next.js, and controlled fixtures; auth, tenant denial, project/site creation, crawl, audit, pages, cited mock RAG, competitor crawl/coverage, and API failure display",
+      "result": "3 passed; local SQLite, Redis container, Celery solo worker, FastAPI, Next.js, and controlled fixtures; auth, tenant denial, project/site creation, crawl, audit, pages, cited mock RAG, competitor crawl/coverage, API failure display, and Redis-backed login throttling",
       "verified_at": "2026-10-15"
     },
     "competitor_coverage": {
@@ -139,6 +139,11 @@
     },
     "celery_prefork_full_e2e": {
       "result": "PASS on isolated Linux/Python 3.12 containers; all test containers and the temporary network were removed after verification",
+      "verified_at": "2026-10-15"
+    },
+    "redis_api_rate_limits": {
+      "command": "cd backend && uv run pytest -q; cd frontend && npm run e2e:local",
+      "result": "registration throttle passes with deterministic Redis test double; Playwright exceeded the real Redis-backed login limit and received 429 with Retry-After; limits cover login, registration, crawl enqueue, and audit enqueue",
       "verified_at": "2026-10-15"
     }
   },
@@ -155,11 +160,15 @@
       "backend/app/services/competitor_intelligence.py",
       "backend/tests/test_competitor_intelligence.py",
       "frontend/e2e/dashboard.spec.ts",
-      "backend/app/auth.py"
+      "backend/app/auth.py",
+      "backend/app/core/rate_limit.py",
+      "backend/tests/test_auth.py",
+      "docs/SECURITY.md",
+      ".env.example"
     ],
     "local_commit": "2771853 docs: record full prefork workflow verification"
   },
-  "next_action": "Address login/crawl rate limits and crawler DNS pinning; then run cross-tenant PostgreSQL/Qdrant isolation and performance checks.",
+  "next_action": "Implement safe crawler DNS pinning, then run authenticated PostgreSQL/Qdrant isolation and performance checks.",
   "environment_limitations": [
     "The original Git metadata remains preserved at /tmp/searchintel-preserve-20261015/git-original-live with seven missing blobs and no remote; clean local snapshot history is used.",
     "Full prefork crawl/search/RAG/audit passed on Linux/Python 3.12. Host macOS/Python 3.14 had a Celery prefork tracer crash; use the documented solo pool on this host.",

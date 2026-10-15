@@ -130,3 +130,28 @@ def test_cookie_authenticated_write_requires_csrf_token(monkeypatch, tmp_path) -
     denied = client.post("/api/v1/tenants", json={"name": "CSRF blocked"})
     assert denied.status_code == 403
     client.close()
+
+
+def test_registration_rate_limit_returns_retry_after(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'rate-limit.db'}")
+    monkeypatch.setenv("VECTOR_STORE_PROVIDER", "memory")
+    monkeypatch.setenv("AUTH_SECRET", "test-only-secret-that-is-at-least-32-bytes-long")
+    monkeypatch.setenv("AUTH_REGISTER_RATE_LIMIT", "2")
+    monkeypatch.setenv("AUTH_REGISTER_RATE_WINDOW_SECONDS", "60")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    get_container.cache_clear()
+    with TestClient(app) as client:
+        for index in range(2):
+            response = client.post(
+                "/api/v1/auth/register",
+                json={"email": f"rate-{index}@example.com", "password": "secure-test-password"},
+            )
+            assert response.status_code == 201
+        limited = client.post(
+            "/api/v1/auth/register",
+            json={"email": "rate-3@example.com", "password": "secure-test-password"},
+        )
+        assert limited.status_code == 429
+        assert limited.headers["retry-after"] == "60"

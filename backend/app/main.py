@@ -1,12 +1,17 @@
 import hmac
 import secrets
+from collections.abc import Awaitable
+from typing import cast
 
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
+from redis.exceptions import RedisError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from app.api.v1.router import router as api_v1_router
+from app.auth import _redis_client
 from app.core.config import get_settings
+from app.core.rate_limit import rate_limit_key, rate_limit_rule
 
 
 class CookieCsrfMiddleware(BaseHTTPMiddleware):
@@ -25,6 +30,36 @@ class CookieCsrfMiddleware(BaseHTTPMiddleware):
                 or not hmac.compare_digest(cookie_token, header_token)
             ):
                 return Response(status_code=403, content="CSRF validation failed")
+
+        rule = rate_limit_rule(request)
+        if rule is not None:
+            client_host = request.client.host if request.client else "unknown"
+            key = rate_limit_key(
+                bucket=rule.bucket,
+                resource=rule.resource,
+                client_host=client_host,
+            )
+            try:
+                result = cast(
+                    Awaitable[list[int]],
+                    _redis_client(settings.redis_url).eval(
+                        "local count = redis.call('INCR', KEYS[1]); "
+                        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; "
+                        "return {count, redis.call('TTL', KEYS[1])}",
+                        1,
+                        key,
+                        str(rule.window_seconds),
+                    ),
+                )
+                count, ttl = await result
+            except RedisError:
+                return Response(status_code=503, content="Rate-limit store is unavailable")
+            if int(count) > rule.limit:
+                return Response(
+                    status_code=429,
+                    content="Request rate limit exceeded",
+                    headers={"Retry-After": str(max(1, int(ttl)))},
+                )
 
         response = await call_next(request)
         set_cookies = response.headers.getlist("set-cookie")

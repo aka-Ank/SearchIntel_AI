@@ -8,6 +8,8 @@ Cookie-authenticated `POST`, `PUT`, `PATCH`, and `DELETE` requests require the `
 
 Sessions are opaque random tokens stored in Redis and expire after the configured `AUTH_TOKEN_LIFETIME_SECONDS` (default one hour). Logout deletes the server-side token as well as clearing the browser cookie, so a copied token stops working immediately. Authentication depends on Redis availability.
 
+Redis-backed API throttles cover login, registration, crawl enqueue, and audit enqueue. Each bucket is keyed by the immediate peer address and operation category, so clients cannot bypass crawl/audit limits by varying website IDs. Defaults and windows are configurable with `AUTH_LOGIN_RATE_LIMIT`, `AUTH_LOGIN_RATE_WINDOW_SECONDS`, `AUTH_REGISTER_RATE_LIMIT`, `AUTH_REGISTER_RATE_WINDOW_SECONDS`, `CRAWL_ENQUEUE_RATE_LIMIT`, `CRAWL_ENQUEUE_RATE_WINDOW_SECONDS`, `AUDIT_ENQUEUE_RATE_LIMIT`, and `AUDIT_ENQUEUE_RATE_WINDOW_SECONDS`. Exceeding a limit returns `429` with `Retry-After`; when Redis is unavailable these endpoints fail closed with `503`. The application does not trust forwarded IP headers; deploy behind a correctly configured trusted-proxy boundary before using peer-IP throttles as an end-user identity control.
+
 ## Tenant access
 
 Each registered user must have a `tenant_memberships` row for a tenant. Creating a tenant assigns its creator the `owner` role. Owners and admins can add already registered users as viewer, editor, or admin. Protected routes check membership before service access; write operations require editor or higher. Unauthorized tenant access deliberately returns 404.
@@ -18,7 +20,6 @@ Relational queries and vector retrieval retain tenant/project filters. Worker di
 
 ## Remaining security work
 
-- Login and crawl rate limits.
 - Project-level membership roles (current roles are tenant-level).
 - Full authenticated PostgreSQL-to-Qdrant isolation coverage and broader dependency/security scanning.
 - DNS pinning/rebinding protection for crawler requests remains a separate SSRF gap.

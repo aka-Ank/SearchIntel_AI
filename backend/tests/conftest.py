@@ -26,6 +26,7 @@ def session_factory() -> Generator[sessionmaker[Session]]:
 class InMemoryRedis:
     def __init__(self) -> None:
         self.values: dict[str, str] = {}
+        self.ttls: dict[str, int] = {}
 
     async def set(self, key: str, value: str, ex: int | None = None) -> None:
         del ex
@@ -37,8 +38,15 @@ class InMemoryRedis:
     async def delete(self, key: str) -> int:
         return int(self.values.pop(key, None) is not None)
 
+    async def eval(self, _script: str, _numkeys: int, key: str, window: str) -> list[int]:
+        count = int(self.values.get(key, "0")) + 1
+        self.values[key] = str(count)
+        self.ttls.setdefault(key, int(window))
+        return [count, self.ttls[key]]
+
 
 @pytest.fixture(autouse=True)
 def fake_auth_session_store(monkeypatch: pytest.MonkeyPatch) -> None:
     store = InMemoryRedis()
     monkeypatch.setattr("app.auth._redis_client", lambda _url: store)
+    monkeypatch.setattr("app.main._redis_client", lambda _url: store)

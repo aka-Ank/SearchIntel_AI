@@ -9,12 +9,13 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | Workstream | Status | Evidence |
 |---|---|---|
 | Recovery | Complete | 66 archive files restored and hash checked; see `RECOVERY_REPORT.md`. |
-| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 52 tests. |
+| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 53 tests. |
 | Async crawling | Implemented; solo and Linux prefork verified | Celery recovered jobs, tracked progress, and persisted pages. A full Python 3.12 prefork workflow crawled two pages, indexed vectors, searched, answered with a citation, and completed an SEO audit. macOS/Python 3.14 development retains the solo pool. |
 | Technical SEO | Implemented; live local service verified | A worker audited three PostgreSQL pages and persisted 27 findings; status, history, summary, and finding APIs returned the stored results. |
 | Frontend | Implemented; browser E2E passed | Playwright verifies auth, tenant isolation, project and website creation, crawl progress, audit findings, indexed pages, cited mock RAG, competitor crawling/coverage, and API failure display. |
 | Live service E2E | Controlled stack passed | Isolated Docker Compose project with PostgreSQL, Redis, and Qdrant. Existing `seo-*` containers and volumes were preserved. |
 | Authentication | Implemented; SQLite and PostgreSQL checks passed | FastAPI Users, CSRF, tenant roles, Alembic `20261015_0003`, and PostgreSQL cross-tenant denial verified. |
+| API rate limiting | Implemented; deterministic and Redis-backed E2E verified | Login, registration, crawl enqueue, and audit enqueue use configurable Redis counters. The local Playwright suite exceeded the login threshold and observed `429` with `Retry-After`. |
 | Worker reliability | Service tests and full Linux prefork workflow passed | Retry, stale recovery, idempotency, cancellation, and failure persistence tests pass; prefork completed crawl through audit. |
 | LLM provider | Adapter implemented; mock tests passed | OpenAI-compatible provider has bounded retries/timeouts, usage accounting, and optional cost estimates. No live provider call was made. |
 | Competitor intelligence | Initial phrase coverage implemented | Competitors use existing crawl/index flow. Coverage links candidate phrases to crawled pages; configured sentence-transformer embeddings enable semantic matching. |
@@ -31,6 +32,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - HTTP response bodies now stream with a configurable 5 MB default size limit (maximum configurable value 50 MB); a controlled test verifies oversized bodies fail before full buffering.
 - `/api/v1/health/ready` reports database, Redis, and responding Celery workers separately and returns HTTP 503 until all three are available; behavior is covered with mocked dependencies.
 - Tenant-scoped website history endpoints list up to 20 crawl jobs and audits; the dashboard reads latest crawl/audit/findings from those persisted endpoints and stores tenant selection in browser storage.
+- Redis Lua counters apply configurable IP/category rate limits to login, registration, crawl enqueue, and audit enqueue. They return `429` plus `Retry-After`, and fail closed with `503` when Redis is unavailable. Forwarded IP headers are not trusted.
 
 ## Latest checks actually run
 
@@ -49,6 +51,13 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - Browser loaded persisted project/site/page data, a completed crawl and counters, and all 27 findings through the API. Tenant/localStorage reload behavior is implemented but was not separately exercised after the final browser build.
 - The first prefork worker attempt crashed inside Celery's fast task tracer on this Python 3.14/macOS host. Verification succeeded using `--pool=solo --concurrency=1`; prefork remains an open runtime check.
 - Live setup caught and fixed `ProjectService` ignoring configured `ALLOW_LOCAL_URLS`; a regression test covers explicitly permitted loopback website registration.
+
+## 2026-10-15 — Redis-backed API rate-limit checkpoint
+
+- Added validated environment settings for login, registration, crawl enqueue, and audit enqueue limits/windows. The atomic Redis Lua counter keys by immediate peer address and operation category, not website ID; excess requests receive `429` and `Retry-After`, while Redis failure returns `503`.
+- Added deterministic unit coverage for registration throttling and a Playwright live-Redis check that sends invalid login requests until the configured threshold is reached. Updated `.env.example` and `docs/SECURITY.md` with defaults and proxy trust boundaries.
+- Verification: `cd backend && uv run pytest -q` — **53 passed** (one existing Starlette/httpx deprecation warning); Ruff passed; mypy passed for 86 source files. `cd frontend && npm run lint && npm run typecheck` passed. `cd frontend && npm run e2e:local` — **3 passed**, including actual Redis throttling.
+- No database migration was needed. Rate limiting is now verified locally; no claims are made about production proxy configuration or distributed deployment behavior beyond Redis atomicity.
 
 ## Historical first checkpoint gaps (superseded by the verified updates below)
 
@@ -83,7 +92,7 @@ Historical checkpoint note: this entry predates the 2026-10-15 repository preser
 
 ## Remaining work
 
-- Add login/crawl rate limits; plan an explicit membership backfill for existing tenants; add DNS pinning to close the remaining rebinding risk.
+- Plan an explicit membership backfill for existing tenants; add DNS pinning to close the remaining rebinding risk.
 - Verify broader PostgreSQL/Qdrant cross-tenant isolation; profile performance and resource usage.
 - A live LLM smoke test and streaming need configured credentials and explicit paid-inference authorization.
 - Extend competitor topic quality, competitive SEO audits, and recommendations. No ranking, traffic, backlink, or keyword-demand claims are made.

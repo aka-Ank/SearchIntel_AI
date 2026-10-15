@@ -65,7 +65,7 @@ The crawler is split into:
 
 HTTP response bodies are read in bounded streaming mode, controlled by `CRAWLER_MAX_RESPONSE_BYTES` (5 MB by default, maximum 50 MB). Oversized content is treated as a failed page rather than retained fully in process memory.
 
-The crawler supports bounded multi-page crawls with max-page and max-depth limits, same-host confinement, URL safety validation at each redirect, duplicate prevention, content-type filtering, configurable per-job concurrency, request pacing, and robots.txt restrictions. HTTP transient failures receive bounded exponential retries. Crawl jobs and audit runs are dispatched through Celery over Redis, with PostgreSQL as the job-state authority. Cancellation is cooperative between crawl batches and page indexing operations. Worker startup requeues pending and stale jobs.
+The crawler supports bounded multi-page crawls with max-page and max-depth limits, same-host confinement, URL safety validation at each redirect, duplicate prevention, content-type filtering, configurable per-job concurrency, request pacing, and robots.txt restrictions. HTTP transient failures receive bounded exponential retries. Crawl jobs and audit runs are dispatched through Celery over Redis, with PostgreSQL as the job-state authority. Cancellation is cooperative between crawl batches and page indexing operations. Worker startup requeues pending and stale jobs. DNS answers are checked during URL validation but are not pinned to the actual connection, so DNS rebinding remains an open SSRF issue.
 
 ### Processing Pipeline
 
@@ -118,7 +118,7 @@ PostgreSQL stores projects, websites, pages, chunks, crawl jobs, SEO audit runs,
 
 ### Multi-Tenancy
 
-Tenant membership rows bind registered users to tenants with owner, admin, editor, or viewer roles. Protected API routes check membership and minimum role before service access. Cookie writes use a strict SameSite session cookie plus CSRF double-submit validation. Opaque session tokens are stored in Redis and deleted on logout. PostgreSQL auth migration, session revocation, and cross-tenant access were verified against isolated PostgreSQL and Redis services. Qdrant and relational retrieval continue to filter by tenant/project; the full auth-to-Qdrant isolation path needs an additional service-level check.
+Tenant membership rows bind registered users to tenants with owner, admin, editor, or viewer roles. Protected API routes check membership and minimum role before service access. Cookie writes use a strict SameSite session cookie plus CSRF double-submit validation. Opaque session tokens are stored in Redis and deleted on logout. Redis Lua counters rate-limit login, registration, crawl enqueue, and audit enqueue by immediate peer address and operation category; trust of forwarded headers is intentionally not enabled. PostgreSQL auth migration, session revocation, cross-tenant access, and real-Redis throttling were verified. Qdrant and relational retrieval continue to filter by tenant/project; the full auth-to-Qdrant isolation path needs an additional service-level check.
 
 Tenant isolation is enforced at every boundary:
 
@@ -198,7 +198,7 @@ This flow has passed unit checks and a controlled PostgreSQL/Redis/Celery/Qdrant
 3. Bounded asynchronous crawl and deterministic SEO audits — unit-tested and controlled live worker verified with Celery solo pool.
 4. Qdrant hybrid retrieval and grounded RAG — controlled service workflow verified; mock LLM only.
 5. Connected Next.js dashboard — build- and browser-verified against live local APIs.
-6. Production hardening — full Linux/Python 3.12 prefork crawl, authenticated tenant identity, browser E2E, retry/recovery tests, and PostgreSQL auth checks pass. Broader fault injection, rate limits, DNS pinning, and performance profiling remain pending.
+6. Production hardening — full Linux/Python 3.12 prefork crawl, authenticated tenant identity, browser E2E, retry/recovery tests, PostgreSQL auth checks, and Redis-backed API rate limits pass. DNS pinning, reviewed legacy membership backfill, broader fault injection, and performance profiling remain pending.
 7. Advanced product work — initial competitor phrase coverage is implemented with optional configured sentence-transformer similarity. Deeper competitor SEO, recommendations, monitoring, graph/agent workflows, GEO, integrations, deployment, and reproducible research remain planned.
 
 ## Async Crawl and SEO Audit Worker

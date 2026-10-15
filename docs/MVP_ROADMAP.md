@@ -6,7 +6,7 @@
 
 ## Stage 1 — Baseline verification
 
-**Local and controlled service verification complete.** 52 backend tests, Ruff, mypy, frontend lint/typecheck/build, and SQLite/PostgreSQL migrations through `20261015_0003` pass. A controlled Docker stack has run PostgreSQL, Redis, and Qdrant.
+**Local and controlled service verification complete.** 53 backend tests, Ruff, mypy, frontend lint/typecheck/build, and SQLite/PostgreSQL migrations through `20261015_0003` pass. A controlled Docker stack has run PostgreSQL, Redis, and Qdrant.
 
 ## Stage 2 — Background crawl infrastructure
 
@@ -45,7 +45,7 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 
 ## Stage 6 — Authentication and tenant roles
 
-**Implemented and verified locally with SQLite, PostgreSQL, Redis, and browser E2E.** FastAPI Users provides registration, password hashing, opaque Redis-backed cookie sessions, logout revocation, and current-user lookup. Alembic `20261015_0003` adds users and tenant memberships. Owner/admin member routes grant viewer/editor/admin roles to registered users. Cookie writes require CSRF. Protected routes enforce tenant membership and minimum roles. The 52-test suite, Ruff, mypy, frontend checks, SQLite/PostgreSQL migrations, PostgreSQL cross-tenant checks, Redis logout replay rejection, and browser auth flows pass. Legacy membership backfill and login/crawl rate limits remain open.
+**Implemented and verified locally with SQLite, PostgreSQL, Redis, and browser E2E.** FastAPI Users provides registration, password hashing, opaque Redis-backed cookie sessions, logout revocation, and current-user lookup. Alembic `20261015_0003` adds users and tenant memberships. Owner/admin member routes grant viewer/editor/admin roles to registered users. Cookie writes require CSRF. Protected routes enforce tenant membership and minimum roles. The 53-test suite, Ruff, mypy, frontend checks, SQLite/PostgreSQL migrations, PostgreSQL cross-tenant checks, Redis logout replay rejection, browser auth flows, and Redis-backed API throttling pass. Legacy membership backfill remains open.
 
 ## Stage 7 — Worker reliability and configured LLM adapter
 
@@ -57,7 +57,7 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 
 ## Next stages
 
-- Expand worker fault/load testing and add login/crawl rate limits.
+- Expand worker fault/load testing and verify throttling behind the intended trusted-proxy configuration.
 - Plan an explicit legacy membership backfill and close the crawler DNS rebinding gap.
 - Add provider streaming and run a real-provider smoke only when credentials and explicit paid-inference authorization exist; retain mock CI.
 - Improve semantic competitor analysis quality, then add comparative SEO findings and recommendations without asserting unavailable search metrics.
