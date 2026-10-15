@@ -197,16 +197,22 @@ def _topic_counts(pages: list[Page]) -> Counter[str]:
 
 def _contains_phrase(page: Page, phrase: str) -> bool:
     source = f"{page.title or ''} {page.normalized_text}".lower()
-    return phrase in source
+    return _phrase_match(source, phrase) is not None
 
 
 def _evidence_snippet(page: Page, phrase: str) -> str:
     text = " ".join(page.normalized_text.split())
-    start = text.lower().find(phrase)
-    if start < 0:
+    match = _phrase_match(text, phrase)
+    if match is None:
         text = page.title or text
-        start = text.lower().find(phrase)
-    if start < 0:
+        match = _phrase_match(text, phrase)
+    if match is None:
         return text[:220]
+    start = match.start()
     start = max(0, start - 70)
     return text[start : start + 220]
+
+
+def _phrase_match(text: str, phrase: str) -> re.Match[str] | None:
+    pattern = rf"(?<![a-z0-9]){re.escape(phrase)}(?![a-z0-9])"
+    return re.search(pattern, text, flags=re.IGNORECASE)

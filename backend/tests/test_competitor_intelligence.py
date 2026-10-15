@@ -4,7 +4,11 @@ from app.models.page import Page
 from app.models.project import Project
 from app.models.tenant import Tenant
 from app.models.website import Website
-from app.services.competitor_intelligence import CompetitorIntelligenceService
+from app.services.competitor_intelligence import (
+    CompetitorIntelligenceService,
+    _contains_phrase,
+    _evidence_snippet,
+)
 
 
 def test_competitor_coverage_returns_evidence_and_is_tenant_scoped(session_factory) -> None:
@@ -91,3 +95,15 @@ def test_competitor_coverage_returns_evidence_and_is_tenant_scoped(session_facto
     assert semantic_topic.coverage == "shared"
     assert semantic_topic.match_method == "semantic_embedding"
     assert semantic_topic.recommended_action is None
+
+
+def test_competitor_phrase_evidence_respects_word_boundaries() -> None:
+    page = Page(title="Art review", normalized_text="Cartography is useful; the art is detailed.")
+
+    assert _contains_phrase(page, "art")
+    assert "the art is detailed" in _evidence_snippet(page, "art")
+
+    page.title = "Cartography review"
+    page.normalized_text = "Cartography and artifact indexing."
+    assert not _contains_phrase(page, "art")
+    assert "Cartography" in _evidence_snippet(page, "art")
