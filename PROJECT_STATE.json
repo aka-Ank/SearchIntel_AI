@@ -37,7 +37,7 @@
   "verified_tests": {
     "pytest": {
       "command": "cd backend && uv run pytest -q",
-      "result": "60 passed, 3 skipped (opt-in PostgreSQL/Qdrant integrations without service URLs and opt-in PostgreSQL legacy audit); one Starlette/httpx TestClient deprecation warning",
+      "result": "61 passed, 3 skipped (opt-in PostgreSQL/Qdrant integrations without service URLs and opt-in PostgreSQL legacy audit); one Starlette/httpx TestClient deprecation warning",
       "verified_at": "2026-10-15"
     },
     "ruff": {
@@ -167,7 +167,12 @@
       "verified_at": "2026-10-15"
     },
     "competitor_gap_review": {
-      "result": "Competitor-only topics return evidence-based human-review action; dashboard shows page count, match method, and source evidence. Backend suite and 3 Playwright tests pass; no demand/rank/traffic claim is made.",
+      "result": "Competitor-only topics return evidence-based human-review action; dashboard shows page count, match method, and source evidence. Whole-phrase evidence matching is tested against substring false positives. Backend suite (61 passed, 3 skipped) and 3 Playwright tests pass; no demand/rank/traffic claim is made.",
+      "verified_at": "2026-10-15"
+    },
+    "competitor_phrase_boundary_matching": {
+      "command": "cd backend && uv run pytest -q tests/test_competitor_intelligence.py",
+      "result": "2 passed; evidence matching uses token boundaries so a candidate phrase does not match inside a longer token. Full backend suite and dashboard E2E also passed.",
       "verified_at": "2026-10-15"
     },
     "legacy_membership_audit": {
@@ -218,7 +223,7 @@
       "docs/SECURITY.md",
       ".env.example"
     ],
-      "local_commit": "e97ee1a feat: add read-only tenant audit and competitor review guidance"
+      "local_commit": "22a4114 fix: match competitor evidence on phrase boundaries"
   },
   "next_action": "Run the read-only membership audit when project PostgreSQL is available; review trusted user-to-tenant mappings before any backfill, then profile performance.",
   "environment_limitations": [
@@ -226,6 +231,7 @@
     "Full prefork crawl/search/RAG/audit passed on Linux/Python 3.12. Host macOS/Python 3.14 had a Celery prefork tracer crash; use the documented solo pool on this host.",
     "Playwright integration uses SQLite, Redis, an in-memory vector adapter, and a solo worker; PostgreSQL/Qdrant were verified separately in controlled Docker workflows.",
     "No real LLM request or sentence-transformer model evaluation was run. Live provider smoke requires configured credentials and explicit paid-inference authorization.",
+    "Sentence-transformer competitor matching remains unverified locally: the optional sentence-transformers package is not installed and BAAI/bge-small-en-v1.5 weights are not cached; no model download was attempted.",
     "Existing tenants require a reviewed user-to-tenant membership backfill before authenticated access is enabled for legacy data."
   ],
   "external_dependencies": [

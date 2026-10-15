@@ -9,7 +9,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | Workstream | Status | Evidence |
 |---|---|---|
 | Recovery | Complete | 66 archive files restored and hash checked; see `RECOVERY_REPORT.md`. |
-| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 60 passed and three opt-in PostgreSQL/Qdrant checks skipped without their service URLs. |
+| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 61 passed and three opt-in PostgreSQL/Qdrant checks skipped without their service URLs. |
 | Async crawling | Implemented; solo and Linux prefork verified | Celery recovered jobs, tracked progress, and persisted pages. A full Python 3.12 prefork workflow crawled two pages, indexed vectors, searched, answered with a citation, and completed an SEO audit. macOS/Python 3.14 development retains the solo pool. |
 | Technical SEO | Implemented; live local service verified | A worker audited three PostgreSQL pages and persisted 27 findings; status, history, summary, and finding APIs returned the stored results. |
 | Frontend | Implemented; browser E2E passed | Playwright verifies auth, tenant isolation, project and website creation, crawl progress, audit findings, indexed pages, cited mock RAG, competitor crawling/coverage, and API failure display. |
@@ -79,7 +79,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 
 - Added `python -m app.cli audit-legacy-memberships [--format json|csv]`. It reports tenant IDs/names and project, website, and membership counts, highlighting tenants with no memberships without guessing an owner or assigning anyone.
 - SQLite access uses `mode=ro` and refuses a missing database file. PostgreSQL starts a read-only transaction. Fixture tests verify counts, no row changes, and no creation of a missing SQLite file.
-- `cd backend && uv run pytest -q`: **60 passed, 3 skipped** (opt-in PostgreSQL/Qdrant integrations and PostgreSQL audit integration without service URLs); Ruff passed; mypy passed for 89 source files; `uv lock --check` passed.
+- `cd backend && uv run pytest -q`: **61 passed, 3 skipped** (opt-in PostgreSQL/Qdrant integrations and PostgreSQL audit integration without service URLs); Ruff passed; mypy passed for 89 source files; `uv lock --check` passed.
 - A separate opt-in PostgreSQL test passed against a fresh PostgreSQL 16 container after Alembic upgrade through `20261015_0003`. It verified the read-only audit transaction and temporary fixture reporting; the container was removed afterward. This was not the configured project database.
 - Attempted the audit against the configured project database; the `.env` points to PostgreSQL on `localhost:5432`, where the connection was refused. No project tenant data was read or changed. Re-run when PostgreSQL is available, then review known user-to-tenant mappings before any backfill.
 
@@ -87,7 +87,13 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 
 - Competitor-only phrase findings now include an evidence-based review action; shared topics omit the action. The dashboard shows the match method, number of crawled competitor pages, all returned evidence links, and the review prompt.
 - The prompt explicitly says that competitor coverage alone does not establish demand or justify publication. The candidate extraction remains deterministic, with optional sentence-transformer similarity and no ranking/traffic metrics.
-- Verification: backend **60 passed, 3 opt-in database tests skipped** in the no-service run, Ruff and mypy passed; frontend lint/typecheck/build passed; `cd frontend && npm run e2e:local` **3 passed**, including the competitor review prompt.
+- Verification: backend **61 passed, 3 opt-in database tests skipped** in the no-service run, Ruff and mypy passed; frontend lint/typecheck/build passed; `cd frontend && npm run e2e:local` **3 passed**, including the competitor review prompt.
+
+## 2026-10-15 — Competitor phrase evidence boundaries
+
+- Evidence matching now checks phrase token boundaries, avoiding false matches where a candidate appears only inside a longer word. Evidence snippets use the same match location.
+- Verification: `tests/test_competitor_intelligence.py` **2 passed**; full backend suite **61 passed, 3 skipped**; Ruff, mypy, and all **3 Playwright E2E** tests passed.
+- Semantic similarity was not executed: the optional `sentence-transformers` package and configured model weights are absent locally. No model download was attempted.
 
 ## 2026-10-15 — Crawler DNS pinning
 

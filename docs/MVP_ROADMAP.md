@@ -6,7 +6,7 @@
 
 ## Stage 1 — Baseline verification
 
-**Local and controlled service verification complete.** 60 backend tests pass, with three opt-in PostgreSQL/Qdrant or audit integration tests skipped unless service URLs are configured. Ruff, mypy, frontend lint/typecheck/build, and SQLite/PostgreSQL migrations through `20261015_0003` pass. Controlled Docker runs have exercised PostgreSQL, Redis, and Qdrant.
+**Local and controlled service verification complete.** 61 backend tests pass, with three opt-in PostgreSQL/Qdrant or audit integration tests skipped unless service URLs are configured. Ruff, mypy, frontend lint/typecheck/build, and SQLite/PostgreSQL migrations through `20261015_0003` pass. Controlled Docker runs have exercised PostgreSQL, Redis, and Qdrant.
 
 ## Stage 2 — Background crawl infrastructure
 
@@ -32,7 +32,7 @@
 
 ## Advanced phases
 
-Initial competitor registration, crawl/indexing, evidence-linked phrase coverage, and dashboard display are implemented. When sentence-transformers is configured, coverage can use semantic similarity; the default deterministic embedding mode compares exact phrases only. Search ranking/traffic/backlinks, deeper competitor audits, recommendations, monitoring/reporting, graph intelligence, agentic workflows, GEO analysis, search-data integrations, broader security/performance, production deployment, and reproducible research experiments remain pending.
+Initial competitor registration, crawl/indexing, evidence-linked phrase coverage, human-review guidance, whole-phrase evidence matching, and dashboard display are implemented. When sentence-transformers is installed and configured, coverage can use semantic similarity; the default deterministic mode compares exact phrases only. The model package and weights are absent locally, so semantic match quality remains unverified. Search ranking/traffic/backlinks, deeper competitor audits, recommendations, monitoring/reporting, graph intelligence, agentic workflows, GEO analysis, search-data integrations, broader security/performance, production deployment, and reproducible research experiments remain pending.
 
 ## Security and verification constraints
 

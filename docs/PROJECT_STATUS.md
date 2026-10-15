@@ -20,7 +20,7 @@ Updated: 2026-10-15
 ## Verified checks
 
 - `cd backend && uv sync --extra dev` — passed.
-- `cd backend && uv run pytest -q` — 60 passed, 3 opt-in PostgreSQL/Qdrant/audit integration tests skipped without service URLs; one Starlette/httpx deprecation warning. The PostgreSQL audit integration separately passed against a disposable PostgreSQL 16 database.
+- `cd backend && uv run pytest -q` — 61 passed, 3 opt-in PostgreSQL/Qdrant/audit integration tests skipped without service URLs; one Starlette/httpx deprecation warning. The PostgreSQL audit integration separately passed against a disposable PostgreSQL 16 database.
 - `cd backend && uv run ruff check app tests` — passed.
 - `cd backend && uv run mypy app` — passed (89 source files).
 - `cd frontend && npm run lint`, `npm run typecheck`, and `npm run build` — passed.
@@ -30,6 +30,7 @@ Updated: 2026-10-15
 - `cd frontend && npm run e2e:local` — 3 Playwright tests passed using local fixture services (SQLite/Redis/solo worker), including real Redis throttling, the pinned crawler transport, and competitor content-gap review; does not exercise PostgreSQL/Qdrant.
 - Authenticated PostgreSQL/Qdrant integration — 2 passed against fresh PostgreSQL 16 and Qdrant 1.12.6, including vector-store and API-level isolation; migrations passed through `20261015_0003`, and test containers were removed. Redis sessions used the deterministic test double in this run.
 - Controlled resolver tests — crawler connected to the approved loopback IP while preserving `Host`, and rejected a simulated public-to-private DNS answer before connecting.
+- Competitor phrase matching uses token boundaries; unit tests reject substring false positives. Real sentence-transformer matching remains unverified because the optional package and model weights are not locally available.
 - Controlled live workflow: readiness, Redis/Celery worker, PostgreSQL pages, Qdrant vectors, hybrid search, grounded mock RAG with citation, SEO audit, and cross-tenant `404` passed against a loopback fixture.
 - A full isolated Linux/Python 3.12 Celery prefork workflow completed crawl, PostgreSQL persistence, Qdrant indexing, hybrid search, cited mock RAG, and SEO audit. macOS/Python 3.14 development uses the solo pool.
 
