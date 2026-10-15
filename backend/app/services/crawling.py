@@ -168,16 +168,19 @@ class CrawlService:
                         )
                     session.commit()
         except Exception as exc:
+            retryable = True
             with self._session_factory() as session:
                 current = CrawlJobRepository(session).get(tenant_id=tenant_id, job_id=job_id)
                 if current is not None:
                     if current.status == "CANCEL_REQUESTED":
                         CrawlJobRepository(session).mark_canceled(current)
+                        retryable = False
                     else:
-                        CrawlJobRepository(session).mark_failed(
-                            current, error_message=str(exc)[:1000]
-                        )
+                        current.status = CrawlJobStatus.pending.value
+                        current.error_message = f"Transient worker error: {type(exc).__name__}"
                     session.commit()
+            if retryable:
+                raise
 
     def cancel_job(self, *, tenant_id: str, job_id: str) -> CrawlJobRead | None:
         with self._session_factory() as session:

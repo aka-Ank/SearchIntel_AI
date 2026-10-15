@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
+from app.auth import CurrentUser, require_tenant_role
 from app.core.url_security import UnsafeUrlError
 from app.schemas.indexing import IndexUrlRequest, IndexUrlResponse
 from app.services.container import get_container
@@ -8,7 +9,8 @@ router = APIRouter()
 
 
 @router.post("/url", response_model=IndexUrlResponse)
-async def index_url(payload: IndexUrlRequest) -> IndexUrlResponse:
+async def index_url(payload: IndexUrlRequest, user: CurrentUser) -> IndexUrlResponse:
+    require_tenant_role(user=user, tenant_id=payload.tenant_id, minimum_role="editor")
     try:
         return await get_container().indexing.index_url(
             tenant_id=payload.tenant_id,

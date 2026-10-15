@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import time
 
-from app.llm.providers import LLMProvider
+from app.llm.providers import LLMProvider, LLMResponse
 from app.rag.context import ContextBuilder, citation_from_evidence
 from app.retrieval.service import RetrievalService
-from app.schemas.rag import RAGQueryResponse
+from app.schemas.rag import RAGQueryResponse, RAGUsage
 from app.schemas.retrieval import RetrievalStrategy
 
 
@@ -54,6 +54,7 @@ class GroundedRAGService:
                 retrieved_chunks=retrieval.results,
                 latency_ms=latency_ms,
                 debug={"context_chars": context.approximate_chars} if include_debug else {},
+                usage=RAGUsage(provider="none", model="none"),
             )
 
         prompt = _build_grounded_prompt(question=question, evidence=context.prompt_context)
@@ -68,17 +69,19 @@ class GroundedRAGService:
             for citation_id in llm_response.citation_ids
             if citation_id in allowed
         ]
-        if len(cited_items) != len(llm_response.citation_ids):
-            llm_response = self._llm_provider.generate_grounded_answer(
-                question=question,
-                prompt=prompt,
-                citation_ids=list(allowed),
+        invalid_citations = len(cited_items) != len(llm_response.citation_ids)
+        if invalid_citations or not cited_items:
+            llm_response = LLMResponse(
+                answer="The indexed evidence does not provide a verifiable cited answer.",
+                citation_ids=[],
+                latency_ms=llm_response.latency_ms,
+                provider=llm_response.provider,
+                model=llm_response.model,
+                prompt_tokens=llm_response.prompt_tokens,
+                completion_tokens=llm_response.completion_tokens,
+                estimated_cost_usd=llm_response.estimated_cost_usd,
             )
-            cited_items = [
-                allowed[citation_id]
-                for citation_id in llm_response.citation_ids
-                if citation_id in allowed
-            ]
+            cited_items = []
         latency_ms = round((time.perf_counter() - started) * 1000, 3)
         return RAGQueryResponse(
             answer=llm_response.answer,
@@ -86,9 +89,31 @@ class GroundedRAGService:
             retrieval_strategy=search_strategy,
             retrieved_chunks=retrieval.results,
             latency_ms=latency_ms,
+            usage=RAGUsage(
+                provider=llm_response.provider,
+                model=llm_response.model,
+                prompt_tokens=llm_response.prompt_tokens,
+                completion_tokens=llm_response.completion_tokens,
+                estimated_cost_usd=llm_response.estimated_cost_usd,
+            ),
             debug={
                 "context_chars": context.approximate_chars,
                 "llm_latency_ms": llm_response.latency_ms,
+                **(
+                    {"prompt_tokens": llm_response.prompt_tokens}
+                    if llm_response.prompt_tokens is not None
+                    else {}
+                ),
+                **(
+                    {"completion_tokens": llm_response.completion_tokens}
+                    if llm_response.completion_tokens is not None
+                    else {}
+                ),
+                **(
+                    {"estimated_cost_usd": llm_response.estimated_cost_usd}
+                    if llm_response.estimated_cost_usd is not None
+                    else {}
+                ),
             }
             if include_debug
             else {},

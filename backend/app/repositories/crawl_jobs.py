@@ -47,9 +47,7 @@ class CrawlJobRepository:
                 .order_by(
                     case(
                         (
-                            CrawlJob.status.in_(
-                                ["PENDING", "RUNNING", "CANCEL_REQUESTED"]
-                            ),
+                            CrawlJob.status.in_(["PENDING", "RUNNING", "CANCEL_REQUESTED"]),
                             0,
                         ),
                         else_=1,

@@ -70,13 +70,7 @@ def test_grounded_rag_returns_valid_citations_and_preserves_tenant_isolation() -
     assert "secrets" not in response.answer.lower()
 
 
-def test_grounded_rag_repairs_invalid_citation_ids() -> None:
-    class BadCitationLLM:
-        def generate_grounded_answer(self, *, question: str, prompt: str, citation_ids: list[int]):
-            if citation_ids == [999]:
-                return LLMResponse(answer="bad", citation_ids=[999])
-            return LLMResponse(answer="repaired [1]", citation_ids=[citation_ids[0]])
-
+def test_grounded_rag_rejects_invalid_citation_ids_without_regeneration() -> None:
     class AlwaysBadFirst:
         calls = 0
 
@@ -86,9 +80,10 @@ def test_grounded_rag_repairs_invalid_citation_ids() -> None:
                 return LLMResponse(answer="bad", citation_ids=[999])
             return LLMResponse(answer="repaired [1]", citation_ids=[citation_ids[0]])
 
+    llm = AlwaysBadFirst()
     rag = GroundedRAGService(
         retrieval_service=make_retrieval(),
-        llm_provider=AlwaysBadFirst(),
+        llm_provider=llm,
         context_builder=ContextBuilder(max_chars=2000),
     )
 
@@ -100,8 +95,9 @@ def test_grounded_rag_repairs_invalid_citation_ids() -> None:
         top_k=3,
     )
 
-    assert response.answer == "repaired [1]"
-    assert response.citations[0].chunk_id == "chunk-1"
+    assert response.answer == "The indexed evidence does not provide a verifiable cited answer."
+    assert response.citations == []
+    assert llm.calls == 1
 
 
 def test_grounded_rag_reports_insufficient_evidence() -> None:

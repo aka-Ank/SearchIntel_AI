@@ -1,8 +1,8 @@
 {
   "project": "SearchIntel AI",
   "updated_at": "2026-10-15",
-  "current_phase": "phase_06_security_and_operational_hardening",
-  "current_task": "prefork_runtime_tenant_auth_and_advanced_features",
+  "current_phase": "phase_11_production_security_hardening",
+  "current_task": "rate_limits_dns_pinning_and_full_prefork_crawl",
   "run_status": "in_progress",
   "completed_phases": [
     "phase_00_recovery",
@@ -12,22 +12,26 @@
     "phase_04_frontend_core_dashboard_local_verification",
     "phase_04_response_size_hardening",
     "phase_05_local_readiness_checks",
-    "phase_05_controlled_postgresql_redis_qdrant_e2e"
+    "phase_05_controlled_postgresql_redis_qdrant_e2e",
+    "phase_06_authentication_and_tenant_authorization_local",
+    "phase_07_worker_reliability_service_tests",
+    "phase_08_configured_llm_provider_adapter",
+    "phase_09_playwright_browser_e2e",
+    "phase_10_competitor_coverage_foundation"
   ],
   "blocked_phases": [],
   "pending_tasks": [
-    "verify_celery_prefork_on_target_linux_python_runtime",
-    "authenticated_tenant_membership_and_authorization",
-    "committed_browser_e2e_and_retry_cancel_crash_recovery_integration_tests",
-    "performance_and_resource_benchmarks",
-    "competitor_analysis_and_content_gaps",
-    "recommendations_monitoring_graph_geo_and_external_integrations",
-    "security_performance_deployment_and_research_phases"
+    "implement_login_and_crawl_rate_limits",
+    "plan_reviewed_legacy_tenant_membership_backfill_and_dns_pinning",
+    "verify_full_linux_python312_prefork_crawl_and_postgresql_qdrant_tenant_boundary",
+    "add_streaming_and_run_real_llm_smoke_only_with_credentials_and_authorization",
+    "validate_semantic_competitor_match_quality_with_configured_sentence_transformer",
+    "competitor_seo_recommendations_performance_and_advanced_roadmap"
   ],
   "verified_tests": {
     "pytest": {
       "command": "cd backend && uv run pytest -q",
-      "result": "40 passed, one Starlette/httpx TestClient deprecation warning",
+      "result": "52 passed; one Starlette/httpx TestClient deprecation warning",
       "verified_at": "2026-10-15"
     },
     "ruff": {
@@ -37,7 +41,7 @@
     },
     "mypy": {
       "command": "cd backend && uv run mypy app",
-      "result": "passed for 78 source files",
+      "result": "passed for 85 source files",
       "verified_at": "2026-10-15"
     },
     "frontend_lint": {
@@ -57,7 +61,7 @@
     },
     "frontend_dependency_audit": {
       "command": "cd frontend && npm audit",
-      "result": "passed; zero reported vulnerabilities",
+      "result": "passed; zero vulnerabilities reported",
       "verified_at": "2026-10-15"
     },
     "dashboard_browser_smoke": {
@@ -73,12 +77,63 @@
       "verified_at": "2026-10-15"
     },
     "alembic": {
-      "command": "cd backend && DATABASE_URL=sqlite:////tmp/searchintel-migration-verify-20261015.db uv run alembic upgrade head",
-      "result": "passed through 20261015_0002",
+      "command": "cd backend && DATABASE_URL=sqlite:////tmp/searchintel-auth-migration-final-20261015.db uv run alembic upgrade head",
+      "result": "passed through 20261015_0003",
       "verified_at": "2026-10-15"
     },
     "celery_redis_postgresql_qdrant": {
       "result": "passed controlled E2E with isolated Docker PostgreSQL/Redis/Qdrant and Celery solo worker: 3 pages persisted, 3 Qdrant vectors, 3 search results, grounded mock RAG with 1 citation, audit completed with 27 findings, cross-tenant lookup returned 404",
+      "verified_at": "2026-10-15"
+    },
+    "auth_api_sqlite": {
+      "command": "cd backend && uv run pytest -q tests/test_auth.py tests/test_api.py",
+      "result": "passed; registration, cookie login/logout, CSRF, tenant membership, cross-tenant denial, viewer/editor role behavior; folded into 43-test suite",
+      "verified_at": "2026-10-15"
+    },
+    "sqlite_auth_migration": {
+      "command": "cd backend && DATABASE_URL=sqlite:////tmp/searchintel-auth-migration-final.db uv run alembic upgrade head",
+      "result": "passed through 20261015_0003",
+      "verified_at": "2026-10-15"
+    },
+    "frontend_auth": {
+      "command": "cd frontend && npm run lint && npm run typecheck && npm run build",
+      "result": "passed after adding login/register, secure-session restoration, authorized tenant selection, and CSRF header support",
+      "verified_at": "2026-10-15"
+    },
+    "celery_prefork_linux_python312": {
+      "command": "isolated Docker network, Python 3.12.15, Redis 7, Celery prefork concurrency 2",
+      "result": "worker control ping and routed crawl task dispatch passed; absent job ID means a full crawl was not verified",
+      "verified_at": "2026-10-15"
+    },
+    "frontend_lint_typecheck_build": {
+      "command": "cd frontend && npm run lint && npm run typecheck && npm run build",
+      "result": "passed; Biome checked 8 files; Next.js production build passed",
+      "verified_at": "2026-10-15"
+    },
+    "postgres_auth_integration": {
+      "result": "isolated PostgreSQL 16 migration through 20261015_0003 passed; registration/login, tenant and membership persistence, project isolation, cross-tenant 404, Redis-backed logout revocation, and old-cookie replay rejection passed with disposable PostgreSQL and Redis services",
+      "verified_at": "2026-10-15"
+    },
+    "worker_reliability_service_tests": {
+      "result": "retry, stale recovery, queue routing, duplicate enqueue/idempotency, cancellation, progress persistence, and sanitized final failure tests pass in the 52-test suite",
+      "verified_at": "2026-10-15"
+    },
+    "openai_compatible_provider_mock": {
+      "command": "cd backend && uv run pytest -q tests/test_llm_provider.py tests/test_rag.py",
+      "result": "mock HTTP tests passed for bounded retry, timeout/error handling, citations, usage/cost fields, and insufficient evidence; no real provider request was made",
+      "verified_at": "2026-10-15"
+    },
+    "playwright_browser_e2e": {
+      "command": "cd frontend && npm run e2e:local",
+      "result": "2 passed; local SQLite, Redis container, Celery solo worker, FastAPI, Next.js, and controlled fixtures; auth, tenant denial, project/site creation, crawl, audit, pages, cited mock RAG, competitor crawl/coverage, and API failure display",
+      "verified_at": "2026-10-15"
+    },
+    "competitor_coverage": {
+      "result": "tenant-scoped evidence phrase coverage and stub sentence-transformer semantic matching covered by service tests; browser flow crawled a competitor fixture and displayed evidence candidates. No real embedding model was run.",
+      "verified_at": "2026-10-15"
+    },
+    "redis_session_revocation": {
+      "result": "Redis-backed opaque session removed on logout; replaying the prior cookie returned 401 in isolated PostgreSQL/Redis integration and automated test",
       "verified_at": "2026-10-15"
     }
   },
@@ -88,17 +143,26 @@
       "docs/PROGRESS.md",
       "docs/ARCHITECTURE.md",
       "docs/MVP_ROADMAP.md",
-      "docs/PROJECT_STATUS.md"
-    ]
+      "docs/PROJECT_STATUS.md",
+      "docs/SECURITY.md",
+      "docs/DEVELOPMENT.md",
+      "PROJECT_STATE.json",
+      "backend/app/services/competitor_intelligence.py",
+      "backend/tests/test_competitor_intelligence.py",
+      "frontend/e2e/dashboard.spec.ts"
+    ],
+    "local_commit": "e4cf581 baseline; verified auth, worker, provider, browser, and competitor changes await local checkpoint commit"
   },
-  "next_action": "Verify Celery prefork on the target Linux/Python runtime; implement authenticated tenant authorization, committed browser E2E tests, retry/cancellation/crash recovery service tests, and performance benchmarks.",
+  "next_action": "Run a complete crawl under Linux/Python 3.12 Celery prefork against isolated PostgreSQL/Redis/Qdrant, then address login/crawl rate limits and crawler DNS pinning.",
   "environment_limitations": [
-    "Celery prefork crashed inside its fast task tracer on the host's Python 3.14/macOS runtime; live verification succeeded with the solo pool and concurrency 1.",
-    "No browser E2E harness is committed; live browser verification was performed interactively.",
-    "Git repository has no remote and missing objects were reported previously; the current cached-diff check also fails because object 0de093ea9a0f266ede3aa19de87de02178137b98 is unavailable. No commit or history rewrite was performed."
+    "The original Git metadata remains preserved at /tmp/searchintel-preserve-20261015/git-original-live with seven missing blobs and no remote; a separate clean local snapshot history is used.",
+    "Linux/Python 3.12 prefork startup, ping, and task routing passed, but the probe referenced an absent job ID; a full prefork crawl remains unverified. macOS/Python 3.14 uses the documented solo pool.",
+    "Playwright integration uses SQLite, Redis, an in-memory vector adapter, and a solo Celery worker; it does not prove PostgreSQL/Qdrant behavior. Earlier isolated PostgreSQL/Redis/Qdrant workflow remains separately verified.",
+    "No real LLM request or sentence-transformer model evaluation was run. Live provider smoke requires configured credentials and explicit paid-inference authorization.",
+    "Existing tenants require a reviewed user-to-tenant membership backfill before authenticated access is enabled for legacy data."
   ],
   "external_dependencies": [
-    "Live model provider credentials and paid inference authorization are not available; current RAG remains on the existing mock provider path."
+    "Live LLM-provider smoke testing requires configured credentials and explicit paid-inference authorization; no live model call has been made."
   ],
   "recovery": {
     "archive": "/Users/aka_ank/iCloud Drive (Archive) - 1/Desktop/SEO",
@@ -113,6 +177,7 @@
     "2_background_crawl": "implemented_and_controlled_live_services_verified_solo_pool",
     "3_technical_seo": "implemented_and_live_audit_verified",
     "4_frontend": "core_dashboard_live_api_browser_verified",
-    "5_end_to_end_validation": "controlled_live_stack_passed_prefork_runtime_pending"
+    "5_end_to_end_validation": "controlled_live_stack_passed_prefork_runtime_pending",
+    "end_to_end_validation": "isolated_postgresql_redis_qdrant_workflow_passed; browser_e2e_passed_on_sqlite_redis; full_prefork_crawl_pending"
   }
 }

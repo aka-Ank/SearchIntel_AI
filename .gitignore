@@ -13,9 +13,14 @@ htmlcov/
 .DS_Store
 node_modules/
 .next/
+test-results/
+playwright-report/
 dist/
 build/
 reports/*.tmp
 
 # Local development settings
 .claude/settings.local.json
+
+# TypeScript build cache
+*.tsbuildinfo

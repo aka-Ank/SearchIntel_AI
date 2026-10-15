@@ -1,7 +1,9 @@
 # mypy: disable-error-code=untyped-decorator
 
+from datetime import UTC, datetime, timedelta
+
 from celery import Celery
-from celery.signals import worker_ready
+from celery.signals import task_failure, worker_ready
 
 from app.core.config import get_settings
 from app.models import audit, crawl_job, page, project, tenant, website  # noqa: F401
@@ -69,14 +71,21 @@ def execute_audit(_task: object, audit_id: str) -> None:
 
 @celery_app.task(name="searchintel.recover_stale_jobs")
 def recover_stale_jobs() -> None:
-    from datetime import timedelta
-
     from app.db.session import SessionLocal
     from app.models.audit import AuditRun
     from app.models.common import utc_now
     from app.models.crawl_job import CrawlJob
 
     now = utc_now()
+    stale_after = timedelta(minutes=15)
+
+    def is_stale(timestamp: datetime | None) -> bool:
+        if timestamp is None:
+            return True
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=UTC)
+        return now - timestamp > stale_after
+
     with SessionLocal() as session:
         crawl_jobs = list(
             session.query(CrawlJob).filter(CrawlJob.status.in_(["PENDING", "RUNNING"]))
@@ -89,14 +98,12 @@ def recover_stale_jobs() -> None:
             for job in crawl_jobs
             if job.status == "PENDING"
             or not job.last_heartbeat_at
-            or now - job.last_heartbeat_at > timedelta(minutes=15)
+            or is_stale(job.last_heartbeat_at)
         ]
         audit_ids = [
             run.id
             for run in audit_runs
-            if run.status == "PENDING"
-            or not run.started_at
-            or now - run.started_at > timedelta(minutes=15)
+            if run.status == "PENDING" or not run.started_at or is_stale(run.started_at)
         ]
         for job in crawl_jobs:
             if job.id in crawl_ids and job.status == "RUNNING":
@@ -114,3 +121,36 @@ def recover_stale_jobs() -> None:
 @worker_ready.connect
 def recover_jobs_on_worker_start(**_kwargs: object) -> None:
     recover_stale_jobs.delay()
+
+
+@task_failure.connect
+def persist_final_job_failure(
+    *, sender: object, args: tuple[object, ...], exception: BaseException, **_kwargs: object
+) -> None:
+    task_name = getattr(sender, "name", "")
+    if not args or not isinstance(args[0], str):
+        return
+    job_id = args[0]
+    from app.db.session import SessionLocal
+    from app.models.common import utc_now
+
+    with SessionLocal() as session:
+        if task_name == "searchintel.execute_crawl":
+            from app.models.crawl_job import CrawlJob
+
+            job = session.get(CrawlJob, job_id)
+            if job is not None and job.status not in {"COMPLETED", "CANCELED"}:
+                job.status = "FAILED"
+                job.error_message = f"Worker retries exhausted ({type(exception).__name__})"
+                job.completed_at = utc_now()
+        elif task_name == "searchintel.execute_audit":
+            from app.models.audit import AuditRun
+
+            run = session.get(AuditRun, job_id)
+            if run is not None and run.status not in {"COMPLETED", "CANCELED"}:
+                run.status = "FAILED"
+                run.error_message = f"Worker retries exhausted ({type(exception).__name__})"
+                run.completed_at = utc_now()
+        else:
+            return
+        session.commit()

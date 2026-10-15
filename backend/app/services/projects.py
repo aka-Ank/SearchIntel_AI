@@ -14,9 +14,7 @@ from app.schemas.websites import WebsiteCreate, WebsiteRead, WebsiteTypeRead
 class ProjectService:
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
-        self._safety_policy = UrlSafetyPolicy(
-            allow_local_urls=get_settings().allow_local_urls
-        )
+        self._safety_policy = UrlSafetyPolicy(allow_local_urls=get_settings().allow_local_urls)
 
     def create_project(self, payload: ProjectCreate) -> ProjectRead:
         with self._session_factory() as session:
@@ -83,16 +81,21 @@ class ProjectService:
             projects = project_repo.list_for_tenant(tenant_id=tenant_id)
             result: list[ProjectRead] = []
             for project in projects:
-                websites = website_repo.list_for_project(
-                    tenant_id=tenant_id, project_id=project.id
-                )
+                websites = website_repo.list_for_project(tenant_id=tenant_id, project_id=project.id)
                 own = next((website for website in websites if website.website_type == "OWN"), None)
-                result.append(ProjectRead(
-                    id=project.id, tenant_id=tenant_id, name=project.name,
-                    website_url=own.base_url if own else None,
-                    competitor_urls=[website.base_url for website in websites
-                                    if website.website_type == "COMPETITOR"],
-                ))
+                result.append(
+                    ProjectRead(
+                        id=project.id,
+                        tenant_id=tenant_id,
+                        name=project.name,
+                        website_url=own.base_url if own else None,
+                        competitor_urls=[
+                            website.base_url
+                            for website in websites
+                            if website.website_type == "COMPETITOR"
+                        ],
+                    )
+                )
             return result
 
     def list_websites(self, *, tenant_id: str, project_id: str) -> list[WebsiteRead] | None:
@@ -103,11 +106,17 @@ class ProjectService:
             websites = WebsiteRepository(session).list_for_project(
                 tenant_id=tenant_id, project_id=project_id
             )
-            return [WebsiteRead(
-                id=item.id, tenant_id=item.tenant_id, project_id=item.project_id,
-                base_url=item.base_url, domain=item.domain,
-                website_type=WebsiteTypeRead(item.website_type),
-            ) for item in websites]
+            return [
+                WebsiteRead(
+                    id=item.id,
+                    tenant_id=item.tenant_id,
+                    project_id=item.project_id,
+                    base_url=item.base_url,
+                    domain=item.domain,
+                    website_type=WebsiteTypeRead(item.website_type),
+                )
+                for item in websites
+            ]
 
     def create_website(self, *, project_id: str, payload: WebsiteCreate) -> WebsiteRead | None:
         with self._session_factory() as session:

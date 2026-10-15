@@ -23,6 +23,14 @@ class Citation(BaseModel):
     supporting_snippet: str
 
 
+class RAGUsage(BaseModel):
+    provider: str = "none"
+    model: str = "none"
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    estimated_cost_usd: float | None = None
+
+
 class RAGQueryResponse(BaseModel):
     answer: str
     citations: list[Citation]
@@ -30,4 +38,5 @@ class RAGQueryResponse(BaseModel):
     retrieved_chunks: list[RetrievedChunkResult]
     latency_ms: float
     grounded: bool = True
+    usage: RAGUsage = Field(default_factory=RAGUsage)
     debug: dict[str, float | int | str] = Field(default_factory=dict)

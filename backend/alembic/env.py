@@ -7,7 +7,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 from app.core.config import get_settings
 from app.db.base import Base
-from app.models import audit, crawl_job, page, project, tenant, website  # noqa: F401
+from app.models import audit, auth, crawl_job, page, project, tenant, website  # noqa: F401
 
 config = context.config
 

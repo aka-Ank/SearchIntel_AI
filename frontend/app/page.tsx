@@ -27,6 +27,8 @@ type Project = {
 	website_url?: string | null;
 	competitor_urls: string[];
 };
+type Tenant = { id: string; name: string; role: string };
+type UserInfo = { id: string; email: string };
 type Website = {
 	id: string;
 	tenant_id: string;
@@ -34,6 +36,22 @@ type Website = {
 	base_url: string;
 	domain: string;
 	website_type: "OWN" | "COMPETITOR";
+};
+type CompetitorCoverage = {
+	project_id: string;
+	own_pages_indexed: number;
+	competitors: Array<{
+		website_id: string;
+		domain: string;
+		pages_indexed: number;
+		topics: Array<{
+			phrase: string;
+			coverage: string;
+			page_count: number;
+			evidence: Array<{ page_id: string; url: string; title?: string | null; snippet: string }>;
+		}>;
+	}>;
+	limitations: string[];
 };
 type PageItem = {
 	id: string;
@@ -82,9 +100,19 @@ type RagResponse = { answer: string; citations: Citation[]; grounded: boolean };
 
 const API = "/api-proxy";
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-	const response = await fetch(`${API}${path}`, {
-		...init,
-		headers: { "Content-Type": "application/json", ...init?.headers },
+  const csrf = typeof document === "undefined" ? "" : document.cookie
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith("searchintel_csrf="))
+    ?.slice("searchintel_csrf=".length) ?? "";
+  const response = await fetch(`${API}${path}`, {
+    ...init,
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrf ? { "X-CSRF-Token": decodeURIComponent(csrf) } : {}),
+      ...init?.headers,
+    },
 	});
 	if (!response.ok) {
 		const body = await response.json().catch(() => null);
@@ -92,8 +120,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 		throw new Error(
 			typeof message === "string" ? message : JSON.stringify(message),
 		);
-	}
-	return response.json() as Promise<T>;
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
 }
 
 const isActive = (status?: string) =>
@@ -105,11 +134,18 @@ const shortDate = (value: string) =>
 	}).format(new Date(value));
 
 export default function Dashboard() {
-	const [tenant, setTenant] = useState("local-tenant");
-	const [tenantDraft, setTenantDraft] = useState("local-tenant");
+  const [tenant, setTenant] = useState("");
+  const [tenantOptions, setTenantOptions] = useState<Tenant[]>([]);
+  const [authReady, setAuthReady] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [registerMode, setRegisterMode] = useState(false);
 	const [projects, setProjects] = useState<Project[]>([]);
 	const [projectId, setProjectId] = useState("");
 	const [websites, setWebsites] = useState<Website[]>([]);
+	const [competitorCoverage, setCompetitorCoverage] = useState<CompetitorCoverage | null>(null);
+	const [websiteType, setWebsiteType] = useState<"OWN" | "COMPETITOR">("OWN");
 	const [websiteId, setWebsiteId] = useState("");
 	const [pages, setPages] = useState<PageItem[]>([]);
 	const [job, setJob] = useState<CrawlJob | null>(null);
@@ -143,13 +179,37 @@ export default function Dashboard() {
 		() => new Map(pages.map((page) => [page.id, page])),
 		[pages],
 	);
-	useEffect(() => {
-		const savedTenant = window.localStorage.getItem("searchintel.tenant");
-		if (savedTenant) {
-			setTenant(savedTenant);
-			setTenantDraft(savedTenant);
+	const refreshCompetitorCoverage = useCallback(async () => {
+		if (!tenant || !projectId) return;
+		try {
+			setCompetitorCoverage(
+				await request<CompetitorCoverage>(
+					`/projects/${projectId}/competitors/coverage?tenant_id=${encodeURIComponent(tenant)}`,
+				),
+			);
+		} catch {
+			setCompetitorCoverage(null);
 		}
-	}, []);
+	}, [projectId, tenant]);
+  useEffect(() => {
+    let active = true;
+    async function restoreSession() {
+      try {
+        const user = await request<UserInfo>("/auth/me");
+        const rows = await request<Tenant[]>("/tenants");
+        if (!active) return;
+        setUserEmail(user.email);
+        setTenantOptions(rows);
+        if (rows[0]) setTenant(rows[0].id);
+      } catch {
+        // No valid session yet; the login form below is the expected state.
+      } finally {
+        if (active) setAuthReady(true);
+      }
+    }
+    void restoreSession();
+    return () => { active = false; };
+  }, []);
 
 	const loadProjects = useCallback(async () => {
 		if (!tenant.trim()) return;
@@ -229,6 +289,13 @@ export default function Dashboard() {
 		}, 0);
 		return () => window.clearTimeout(timer);
 	}, [projectId, tenant, loadWebsiteData]);
+	useEffect(() => {
+		if (!tenant || !projectId) {
+			setCompetitorCoverage(null);
+			return;
+		}
+		void refreshCompetitorCoverage();
+	}, [projectId, refreshCompetitorCoverage, tenant]);
 	useEffect(() => {
 		if (websiteId && projectId)
 			window.localStorage.setItem(
@@ -364,13 +431,14 @@ export default function Dashboard() {
 				body: JSON.stringify({
 					tenant_id: tenant,
 					base_url: newWebsiteUrl,
-					website_type: "OWN",
+					website_type: websiteType,
 				}),
 			});
 			setWebsites((current) => [...current, site]);
 			setWebsiteId(site.id);
 			setShowWebsiteForm(false);
 			setNewWebsiteUrl("");
+			setWebsiteType("OWN");
 		} catch (cause) {
 			setError(
 				cause instanceof Error ? cause.message : "Could not register website",
@@ -504,6 +572,55 @@ export default function Dashboard() {
 	const [searchResults, setSearchResults] = useState<
 		{ title?: string; url: string; snippet: string; score: number }[]
 	>([]);
+	async function authenticate(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		setError("");
+		setBusy("auth");
+		try {
+			if (registerMode) {
+				await request<UserInfo>("/auth/register", {
+					method: "POST",
+					body: JSON.stringify({ email: authEmail, password: authPassword }),
+				});
+			}
+			await request<void>("/auth/login", {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: new URLSearchParams({ username: authEmail, password: authPassword }).toString(),
+			});
+			const [user, rows] = await Promise.all([
+				request<UserInfo>("/auth/me"),
+				request<Tenant[]>("/tenants"),
+			]);
+			let memberships = rows;
+			if (!memberships.length) {
+				const created = await request<Tenant>("/tenants", {
+					method: "POST",
+					body: JSON.stringify({ name: "My workspace" }),
+				});
+				memberships = [created];
+			}
+			setUserEmail(user.email);
+			setTenantOptions(memberships);
+			setTenant(memberships[0]?.id ?? "");
+		} catch (cause) {
+			setError(cause instanceof Error ? cause.message : "Sign in failed");
+		} finally {
+			setBusy("");
+		}
+	}
+
+	async function signOut() {
+		try {
+			await request<void>("/auth/logout", { method: "POST" });
+		} finally {
+			setUserEmail("");
+			setTenant("");
+			setProjects([]);
+			setProjectId("");
+		}
+	}
+
 	async function loadAllFindings() {
 		if (!audit) return;
 		try {
@@ -528,6 +645,27 @@ export default function Dashboard() {
 	).length;
 
 	return (
+		!authReady ? (
+			<div className="grid min-h-screen place-items-center bg-canvas text-sm text-muted">Loading secure workspace…</div>
+		) : !userEmail ? (
+			<main className="grid min-h-screen place-items-center bg-canvas px-4 text-ink">
+				<form onSubmit={authenticate} className="w-full max-w-sm rounded-2xl border border-line bg-white p-7 shadow-soft">
+					<div className="mb-1 text-xl font-semibold">{registerMode ? "Create your account" : "Sign in to SearchIntel"}</div>
+					<p className="mb-6 text-sm text-muted">Your workspace and website data stay scoped to your account.</p>
+					<label className="mb-4 block text-xs font-medium">Email
+						<input required type="email" autoComplete="email" className="form-control mt-1" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} />
+					</label>
+					<label className="mb-4 block text-xs font-medium">Password
+						<input required minLength={8} type="password" autoComplete={registerMode ? "new-password" : "current-password"} className="form-control mt-1" value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} />
+					</label>
+					{error && <p role="alert" className="mb-3 text-xs text-red-700">{error}</p>}
+					<button type="submit" disabled={busy === "auth"} className="btn-primary w-full">{busy === "auth" ? "Please wait…" : registerMode ? "Create account" : "Sign in"}</button>
+					<button type="button" className="mt-4 w-full text-xs text-forest" onClick={() => setRegisterMode((value) => !value)}>
+						{registerMode ? "Already have an account? Sign in" : "New to SearchIntel? Create an account"}
+					</button>
+				</form>
+			</main>
+		) : (
 		<div className="min-h-screen bg-canvas text-ink">
 			<aside className="fixed inset-y-0 left-0 z-20 hidden w-[244px] flex-col border-r border-line bg-white px-5 py-6 lg:flex">
 				<div className="mb-10 flex items-center gap-3 px-1">
@@ -575,8 +713,7 @@ export default function Dashboard() {
 						<ShieldCheck size={15} className="text-forest" /> Local workspace
 					</div>
 					<div className="text-[11px] leading-relaxed text-muted">
-						Use a tenant ID for your local project data. Authentication is not
-						configured in this MVP.
+						Signed in as {userEmail}. Your role controls access to this workspace.
 					</div>
 				</div>
 			</aside>
@@ -605,27 +742,14 @@ export default function Dashboard() {
 							{apiOnline ? "API connected" : "API unavailable"}
 						</div>
 						<div className="hidden items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-1.5 md:flex">
-							<span className="text-[11px] text-muted">Tenant</span>
-							<input
-								aria-label="Tenant ID"
-								value={tenantDraft}
-								onChange={(event) => setTenantDraft(event.target.value)}
-								onBlur={() => {
-									const value = tenantDraft.trim();
-									if (value) {
-										setTenant(value);
-										window.localStorage.setItem("searchintel.tenant", value);
-										setProjectId("");
-										setJob(null);
-										setAudit(null);
-										setFindings([]);
-									}
-								}}
-								onKeyDown={(event) => {
-									if (event.key === "Enter") event.currentTarget.blur();
-								}}
-								className="w-28 border-0 bg-transparent text-xs outline-none"
-							/>
+							<span className="text-[11px] text-muted">Workspace</span>
+							<select aria-label="Workspace" value={tenant} onChange={(event) => { setTenant(event.target.value); setProjectId(""); setJob(null); setAudit(null); setFindings([]); }} className="max-w-32 border-0 bg-transparent text-xs outline-none">
+								{tenantOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+							</select>
+						</div>
+						<div className="hidden items-center gap-2 md:flex">
+							<span className="max-w-36 truncate text-[11px] text-muted">{userEmail}</span>
+							<button type="button" onClick={() => void signOut()} className="text-[11px] font-medium text-forest">Sign out</button>
 						</div>
 						<div className="grid h-8 w-8 place-items-center rounded-full bg-[#dbece4] text-xs font-bold text-forest">
 							SI
@@ -1055,6 +1179,42 @@ export default function Dashboard() {
 						</div>
 					</section>
 
+					{websites.some((site) => site.website_type === "COMPETITOR") && (
+						<section className="mb-8 rounded-2xl border border-line bg-white p-5 shadow-soft md:p-6">
+							<div className="mb-4">
+								<div className="flex items-center justify-between gap-3">
+									<h2 className="text-base font-semibold">Competitor content coverage</h2>
+									<button type="button" onClick={() => void refreshCompetitorCoverage()} className="rounded-lg border border-line px-3 py-2 text-[11px] font-semibold hover:bg-canvas">Refresh</button>
+								</div>
+								<p className="mt-1 text-xs text-muted">Evidence-linked phrase candidates from successfully crawled pages.</p>
+							</div>
+							{competitorCoverage?.competitors.length ? (
+								<div className="space-y-4">
+									{competitorCoverage.competitors.map((competitor) => {
+										const candidates = competitor.topics.filter((topic) => topic.coverage === "competitor_only").slice(0, 8);
+										return (
+											<div key={competitor.website_id} className="rounded-xl border border-line p-4">
+												<div className="mb-3 flex items-center justify-between gap-3">
+													<div className="text-sm font-semibold">{competitor.domain}</div>
+													<div className="text-[10px] text-muted">{competitor.pages_indexed} pages compared</div>
+												</div>
+												{candidates.length ? <div className="space-y-3">
+													{candidates.map((topic) => (
+														<article key={topic.phrase} className="rounded-lg bg-canvas p-3">
+															<div className="text-xs font-semibold">{topic.phrase}</div>
+															{topic.evidence.slice(0, 1).map((item) => <div key={item.page_id} className="mt-1 text-[10px] leading-relaxed text-muted"><a className="text-forest hover:underline" href={item.url} target="_blank" rel="noreferrer">{item.title || item.url}</a><p>{item.snippet}</p></div>)}
+														</article>
+													))}
+												</div> : <p className="text-xs text-muted">{competitor.pages_indexed ? "No competitor-only phrase candidates in the current top set." : "Select this competitor in Website crawl and start a crawl to collect evidence."}</p>}
+											</div>
+										);
+									})}
+								</div>
+							) : <EmptyState title="No competitor pages" text="Register and crawl a competitor website to compare page topics." />}
+							{competitorCoverage?.limitations.map((item) => <p key={item} className="mt-2 text-[10px] leading-relaxed text-muted">{item}</p>)}
+						</section>
+					)}
+
 					<section className="mb-8 grid gap-5 xl:grid-cols-[1fr_1fr]">
 						<div className="rounded-2xl border border-line bg-white p-5 shadow-soft md:p-6">
 							<div className="mb-4 flex items-center justify-between">
@@ -1076,6 +1236,7 @@ export default function Dashboard() {
 									className="h-10 min-w-0 flex-1 rounded-lg border border-line px-3 text-sm outline-none focus:border-forest"
 								/>
 								<button type="submit"
+									aria-label="Search pages"
 									disabled={!projectId || !!busy}
 									className="grid h-10 w-10 place-items-center rounded-lg bg-forest text-white"
 								>
@@ -1143,6 +1304,7 @@ export default function Dashboard() {
 									className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-white px-3 text-sm outline-none focus:border-forest"
 								/>
 								<button type="submit"
+									aria-label="Ask question"
 									disabled={!projectId || !!busy}
 									className="grid h-10 w-10 place-items-center rounded-lg bg-forest text-white"
 								>
@@ -1268,6 +1430,17 @@ export default function Dashboard() {
 								className="form-control"
 							/>
 						</Field>
+						<Field id="website-type" label="Website role">
+							<select
+								id="website-type"
+								value={websiteType}
+								onChange={(event) => setWebsiteType(event.target.value as "OWN" | "COMPETITOR")}
+								className="form-control"
+							>
+								<option value="OWN">My website</option>
+								<option value="COMPETITOR">Competitor website</option>
+							</select>
+						</Field>
 						<p className="text-[11px] leading-relaxed text-muted">
 							Crawls stay on this hostname, respect robots.txt, and use your
 							configured page and rate limits.
@@ -1329,6 +1502,7 @@ export default function Dashboard() {
 				</Modal>
 			)}
 		</div>
+		)
 	);
 }
 

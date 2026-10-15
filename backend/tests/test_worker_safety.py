@@ -98,9 +98,7 @@ async def test_fetcher_stops_reading_response_after_configured_byte_limit(monkey
             )
 
     monkeypatch.setattr("app.crawler.fetcher.httpx.AsyncClient", lambda **_kwargs: Client())
-    fetcher = HttpxFetcher(
-        user_agent="test", timeout_seconds=1, max_response_bytes=5
-    )
+    fetcher = HttpxFetcher(user_agent="test", timeout_seconds=1, max_response_bytes=5)
     with pytest.raises(ResponseTooLargeError, match="5-byte crawl limit"):
         await fetcher.fetch("https://8.8.8.8/")
 

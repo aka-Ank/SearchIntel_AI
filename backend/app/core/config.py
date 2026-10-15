@@ -1,6 +1,7 @@
 from functools import lru_cache
+from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +35,25 @@ class Settings(BaseSettings):
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     rag_context_max_chars: int = Field(default=6000, ge=500, le=50000)
     llm_provider: str = "mock"
+    auth_secret: SecretStr | None = None
+    auth_cookie_secure: bool | None = None
+    auth_cookie_samesite: Literal["lax", "strict", "none"] = "strict"
+    auth_token_lifetime_seconds: int = Field(default=3600, ge=300, le=86400)
+    llm_model: str = "gpt-4o-mini"
+    llm_api_key: SecretStr | None = None
+    llm_api_base_url: str = "https://api.openai.com/v1"
+    llm_timeout_seconds: float = Field(default=30.0, gt=0, le=180)
+    llm_max_retries: int = Field(default=2, ge=0, le=5)
+    llm_input_cost_per_million: float | None = Field(default=None, ge=0)
+    llm_output_cost_per_million: float | None = Field(default=None, ge=0)
+
+    @property
+    def secure_auth_cookies(self) -> bool:
+        return (
+            self.auth_cookie_secure
+            if self.auth_cookie_secure is not None
+            else self.app_env == "production"
+        )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

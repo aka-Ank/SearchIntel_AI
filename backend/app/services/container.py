@@ -16,7 +16,7 @@ from app.embeddings.providers import (
     EmbeddingProvider,
     SentenceTransformerEmbeddingProvider,
 )
-from app.llm.providers import LLMProvider, MockLLMProvider
+from app.llm.providers import LLMProvider, MockLLMProvider, OpenAICompatibleProvider
 from app.models.page import ContentChunk as ContentChunkModel
 from app.models.page import Page
 from app.processing.chunking import StructureAwareChunker
@@ -28,6 +28,7 @@ from app.retrieval.bm25 import BM25Index
 from app.retrieval.service import RetrievalService
 from app.retrieval.vector_store import InMemoryVectorStore, QdrantVectorStore, VectorStore
 from app.schemas.content import ContentChunk
+from app.services.competitor_intelligence import CompetitorIntelligenceService
 from app.services.crawling import CrawlService
 from app.services.indexing import IndexingService
 from app.services.pages import PageService
@@ -54,6 +55,10 @@ class ServiceContainer:
         selected_vector_store = vector_store or _build_vector_store(settings)
 
         self.projects = ProjectService(self.session_factory)
+        self.competitors = CompetitorIntelligenceService(
+            self.session_factory,
+            embedding_provider=embedding_provider,
+        )
         self.pages = PageService(self.session_factory)
         self.retrieval = RetrievalService(
             embedding_provider=embedding_provider,
@@ -153,8 +158,22 @@ def _build_reranker(settings: Settings) -> Reranker:
 
 
 def _build_llm_provider(settings: Settings) -> LLMProvider:
-    if settings.llm_provider.lower() == "mock":
+    provider = settings.llm_provider.lower()
+    if provider == "mock":
         return MockLLMProvider()
+    if provider in {"openai", "openai_compatible"}:
+        api_key = settings.llm_api_key
+        if api_key is None or not api_key.get_secret_value():
+            raise ValueError("LLM_API_KEY is required for the configured real LLM provider")
+        return OpenAICompatibleProvider(
+            api_key=api_key.get_secret_value(),
+            model=settings.llm_model,
+            base_url=settings.llm_api_base_url,
+            timeout_seconds=settings.llm_timeout_seconds,
+            max_retries=settings.llm_max_retries,
+            input_cost_per_million=settings.llm_input_cost_per_million,
+            output_cost_per_million=settings.llm_output_cost_per_million,
+        )
     raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
