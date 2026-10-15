@@ -32,7 +32,7 @@
   "verified_tests": {
     "pytest": {
       "command": "cd backend && uv run pytest -q",
-      "result": "53 passed; one Starlette/httpx TestClient deprecation warning",
+      "result": "54 passed; one Starlette/httpx TestClient deprecation warning",
       "verified_at": "2026-10-15"
     },
     "ruff": {
@@ -143,7 +143,7 @@
     },
     "redis_api_rate_limits": {
       "command": "cd backend && uv run pytest -q; cd frontend && npm run e2e:local",
-      "result": "registration throttle passes with deterministic Redis test double; Playwright exceeded the real Redis-backed login limit and received 429 with Retry-After; limits cover login, registration, crawl enqueue, and audit enqueue",
+      "result": "registration throttle and fail-closed Redis outage pass with deterministic Redis tests; Playwright exceeded the real Redis-backed login limit and received 429 with Retry-After; limits cover login, registration, crawl enqueue, and audit enqueue",
       "verified_at": "2026-10-15"
     }
   },
@@ -166,7 +166,7 @@
       "docs/SECURITY.md",
       ".env.example"
     ],
-    "local_commit": "2771853 docs: record full prefork workflow verification"
+    "local_commit": "cd64cc4 feat: add Redis-backed API rate limits"
   },
   "next_action": "Implement safe crawler DNS pinning, then run authenticated PostgreSQL/Qdrant isolation and performance checks.",
   "environment_limitations": [

@@ -155,3 +155,26 @@ def test_registration_rate_limit_returns_retry_after(monkeypatch, tmp_path) -> N
         )
         assert limited.status_code == 429
         assert limited.headers["retry-after"] == "60"
+
+
+def test_login_rate_limit_fails_closed_when_redis_is_unavailable(monkeypatch, tmp_path) -> None:
+    from redis.exceptions import ConnectionError as RedisConnectionError
+
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'rate-limit-redis.db'}")
+    monkeypatch.setenv("VECTOR_STORE_PROVIDER", "memory")
+    monkeypatch.setenv("AUTH_SECRET", "test-only-secret-that-is-at-least-32-bytes-long")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    get_container.cache_clear()
+
+    def unavailable(_url: str):
+        raise RedisConnectionError("test Redis outage")
+
+    monkeypatch.setattr("app.main._redis_client", unavailable)
+    with TestClient(app) as client:
+        limited = client.post(
+            "/api/v1/auth/login",
+            data={"username": "someone@example.com", "password": "wrong-password"},
+        )
+    assert limited.status_code == 503

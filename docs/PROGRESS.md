@@ -9,7 +9,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 | Workstream | Status | Evidence |
 |---|---|---|
 | Recovery | Complete | 66 archive files restored and hash checked; see `RECOVERY_REPORT.md`. |
-| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 53 tests. |
+| Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 54 tests. |
 | Async crawling | Implemented; solo and Linux prefork verified | Celery recovered jobs, tracked progress, and persisted pages. A full Python 3.12 prefork workflow crawled two pages, indexed vectors, searched, answered with a citation, and completed an SEO audit. macOS/Python 3.14 development retains the solo pool. |
 | Technical SEO | Implemented; live local service verified | A worker audited three PostgreSQL pages and persisted 27 findings; status, history, summary, and finding APIs returned the stored results. |
 | Frontend | Implemented; browser E2E passed | Playwright verifies auth, tenant isolation, project and website creation, crawl progress, audit findings, indexed pages, cited mock RAG, competitor crawling/coverage, and API failure display. |
@@ -55,8 +55,8 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 ## 2026-10-15 — Redis-backed API rate-limit checkpoint
 
 - Added validated environment settings for login, registration, crawl enqueue, and audit enqueue limits/windows. The atomic Redis Lua counter keys by immediate peer address and operation category, not website ID; excess requests receive `429` and `Retry-After`, while Redis failure returns `503`.
-- Added deterministic unit coverage for registration throttling and a Playwright live-Redis check that sends invalid login requests until the configured threshold is reached. Updated `.env.example` and `docs/SECURITY.md` with defaults and proxy trust boundaries.
-- Verification: `cd backend && uv run pytest -q` — **53 passed** (one existing Starlette/httpx deprecation warning); Ruff passed; mypy passed for 86 source files. `cd frontend && npm run lint && npm run typecheck` passed. `cd frontend && npm run e2e:local` — **3 passed**, including actual Redis throttling.
+- Added deterministic unit coverage for registration throttling and fail-closed Redis outages, plus a Playwright live-Redis check that sends invalid login requests until the configured threshold is reached. Updated `.env.example` and `docs/SECURITY.md` with defaults and proxy trust boundaries.
+- Verification: `cd backend && uv run pytest -q` — **54 passed** (one existing Starlette/httpx TestClient deprecation warning); Ruff passed; mypy passed for 86 source files. `cd frontend && npm run lint && npm run typecheck` passed. `cd frontend && npm run e2e:local` — **3 passed**, including actual Redis throttling.
 - No database migration was needed. Rate limiting is now verified locally; no claims are made about production proxy configuration or distributed deployment behavior beyond Redis atomicity.
 
 ## Historical first checkpoint gaps (superseded by the verified updates below)
