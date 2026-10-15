@@ -157,7 +157,7 @@
       "frontend/e2e/dashboard.spec.ts",
       "backend/app/auth.py"
     ],
-    "local_commit": "full prefork workflow evidence documented in the next local checkpoint commit"
+    "local_commit": "2771853 docs: record full prefork workflow verification"
   },
   "next_action": "Address login/crawl rate limits and crawler DNS pinning; then run cross-tenant PostgreSQL/Qdrant isolation and performance checks.",
   "environment_limitations": [
