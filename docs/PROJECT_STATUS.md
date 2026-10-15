@@ -36,5 +36,5 @@ See [`docs/PROGRESS.md`](PROGRESS.md), [`docs/MVP_ROADMAP.md`](MVP_ROADMAP.md), 
 
 - New clean local Git history begins at `e4cf581`; the original damaged Git metadata was preserved separately and not rewritten.
 - Authentication and membership schema migrated in SQLite and PostgreSQL through `20261015_0003`; protected route, CSRF, PostgreSQL persistence, Redis logout revocation, and cross-tenant checks pass.
-- The original damaged Git metadata remains preserved; the latest verified local milestone is being checkpointed in the clean snapshot repository.
+- The original damaged Git metadata remains preserved; commit `3d7db85` checkpoints the verified auth, provider, worker, browser, and competitor foundations in the clean local repository.
 - Competitor evidence phrase coverage and browser flow are implemented. Semantic matching is wired to configured sentence-transformer embeddings; no real model quality evaluation has been run.

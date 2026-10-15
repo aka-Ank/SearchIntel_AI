@@ -149,9 +149,10 @@
       "PROJECT_STATE.json",
       "backend/app/services/competitor_intelligence.py",
       "backend/tests/test_competitor_intelligence.py",
-      "frontend/e2e/dashboard.spec.ts"
+      "frontend/e2e/dashboard.spec.ts",
+      "backend/app/auth.py"
     ],
-    "local_commit": "e4cf581 baseline; verified auth, worker, provider, browser, and competitor changes await local checkpoint commit"
+    "local_commit": "3d7db85 feat: add authenticated search intelligence foundations"
   },
   "next_action": "Run a complete crawl under Linux/Python 3.12 Celery prefork against isolated PostgreSQL/Redis/Qdrant, then address login/crawl rate limits and crawler DNS pinning.",
   "environment_limitations": [
