@@ -44,10 +44,12 @@ type CompetitorCoverage = {
 		website_id: string;
 		domain: string;
 		pages_indexed: number;
-		topics: Array<{
+			topics: Array<{
 			phrase: string;
 			coverage: string;
+			match_method: string;
 			page_count: number;
+			recommended_action?: string | null;
 			evidence: Array<{ page_id: string; url: string; title?: string | null; snippet: string }>;
 		}>;
 	}>;
@@ -1199,12 +1201,16 @@ export default function Dashboard() {
 													<div className="text-[10px] text-muted">{competitor.pages_indexed} pages compared</div>
 												</div>
 												{candidates.length ? <div className="space-y-3">
-													{candidates.map((topic) => (
-														<article key={topic.phrase} className="rounded-lg bg-canvas p-3">
-															<div className="text-xs font-semibold">{topic.phrase}</div>
-															{topic.evidence.slice(0, 1).map((item) => <div key={item.page_id} className="mt-1 text-[10px] leading-relaxed text-muted"><a className="text-forest hover:underline" href={item.url} target="_blank" rel="noreferrer">{item.title || item.url}</a><p>{item.snippet}</p></div>)}
-														</article>
-													))}
+														{candidates.map((topic) => (
+															<article key={topic.phrase} className="rounded-lg bg-canvas p-3">
+																<div className="flex flex-wrap items-center justify-between gap-2">
+																	<div className="text-xs font-semibold">{topic.phrase}</div>
+																	<div className="text-[10px] text-muted">{topic.page_count} pages · {topic.match_method.replaceAll("_", " ")}</div>
+																</div>
+																{topic.recommended_action && <p className="mt-1 text-[10px] leading-relaxed text-muted">{topic.recommended_action}</p>}
+																{topic.evidence.map((item) => <div key={item.page_id} className="mt-2 text-[10px] leading-relaxed text-muted"><a className="text-forest hover:underline" href={item.url} target="_blank" rel="noreferrer">{item.title || item.url}</a><p>{item.snippet}</p></div>)}
+															</article>
+														))}
 												</div> : <p className="text-xs text-muted">{competitor.pages_indexed ? "No competitor-only phrase candidates in the current top set." : "Select this competitor in Website crawl and start a crawl to collect evidence."}</p>}
 											</div>
 										);

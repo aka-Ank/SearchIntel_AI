@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import json
+import sys
 
 from sqlalchemy import select
 
+from app.core.config import get_settings
+from app.maintenance.legacy_memberships import audit_unassigned_tenants
 from app.models.page import ContentChunk as ContentChunkModel
 from app.models.page import Page
 from app.repositories.pages import ChunkRepository
@@ -22,6 +27,12 @@ def main() -> None:
     reindex_parser.add_argument("--project", dest="project_id", required=True)
     reindex_parser.add_argument("--website", dest="website_ids", action="append")
 
+    membership_audit_parser = subparsers.add_parser(
+        "audit-legacy-memberships",
+        help="Read-only report of tenants without membership records",
+    )
+    membership_audit_parser.add_argument("--format", choices=("json", "csv"), default="json")
+
     args = parser.parse_args()
     if args.command == "reindex":
         count = reindex_project(
@@ -30,6 +41,17 @@ def main() -> None:
             website_ids=args.website_ids,
         )
         print(f"Reindexed {count} chunks")
+    elif args.command == "audit-legacy-memberships":
+        report = audit_unassigned_tenants(get_settings().database_url)
+        if args.format == "json":
+            print(json.dumps(report, indent=2, default=str))
+        else:
+            writer = csv.DictWriter(
+                sys.stdout,
+                fieldnames=("id", "name", "project_count", "website_count", "membership_count"),
+            )
+            writer.writeheader()
+            writer.writerows(report["tenants"])
 
 
 def reindex_project(

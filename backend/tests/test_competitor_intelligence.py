@@ -70,6 +70,8 @@ def test_competitor_coverage_returns_evidence_and_is_tenant_scoped(session_facto
     assert candidate.coverage == "competitor_only"
     assert candidate.evidence[0].page_id == "page-competitor"
     assert "Quantum analytics" in candidate.evidence[0].snippet
+    assert candidate.recommended_action is not None
+    assert "does not establish demand" in candidate.recommended_action
     assert service.compare(tenant_id="other-tenant", project_id="project-a") is None
 
     class SemanticStub:
@@ -88,3 +90,4 @@ def test_competitor_coverage_returns_evidence_and_is_tenant_scoped(session_facto
     )
     assert semantic_topic.coverage == "shared"
     assert semantic_topic.match_method == "semantic_embedding"
+    assert semantic_topic.recommended_action is None

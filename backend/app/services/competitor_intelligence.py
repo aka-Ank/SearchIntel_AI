@@ -94,6 +94,18 @@ class CompetitorIntelligenceService:
                 topics: list[TopicCoverage] = []
                 for phrase in candidate_phrases:
                     matching = [page for page in site_pages if _contains_phrase(page, phrase)]
+                    coverage = (
+                        "shared"
+                        if own_topics[phrase] or phrase in semantic_matches
+                        else "competitor_only"
+                    )
+                    match_method = (
+                        "exact_phrase"
+                        if own_topics[phrase]
+                        else "semantic_embedding"
+                        if phrase in semantic_matches
+                        else "unmatched"
+                    )
                     evidence = [
                         TopicEvidence(
                             page_id=page.id,
@@ -106,20 +118,17 @@ class CompetitorIntelligenceService:
                     topics.append(
                         TopicCoverage(
                             phrase=phrase,
-                            coverage=(
-                                "shared"
-                                if own_topics[phrase] or phrase in semantic_matches
-                                else "competitor_only"
-                            ),
-                            match_method=(
-                                "exact_phrase"
-                                if own_topics[phrase]
-                                else "semantic_embedding"
-                                if phrase in semantic_matches
-                                else "unmatched"
-                            ),
+                            coverage=coverage,
+                            match_method=match_method,
                             page_count=len(matching),
                             evidence=evidence,
+                            recommended_action=(
+                                "Review the linked pages and decide whether this topic fits your "
+                                "audience and content plan. Competitor coverage alone does not "
+                                "establish demand or justify publication."
+                                if coverage == "competitor_only"
+                                else None
+                            ),
                         )
                     )
                 competitors.append(
@@ -141,7 +150,7 @@ class CompetitorIntelligenceService:
                     "Semantic matches use the configured sentence-transformers provider; "
                     "otherwise only exact phrase overlap is considered.",
                     "A competitor-only phrase is a research candidate, not proof of demand, "
-                    "ranking, traffic, or a recommendation to publish.",
+                    "ranking, or traffic. Suggested actions only prompt human review.",
                     "Only successfully crawled project pages are compared; crawl competitors "
                     "separately to improve coverage.",
                 ],

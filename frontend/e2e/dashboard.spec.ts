@@ -48,6 +48,7 @@ test("user can register, crawl, audit, browse pages, and ask a cited RAG questio
 	await expect(page.getByText("Competitor content coverage", { exact: true })).toBeVisible();
 	await page.getByRole("button", { name: "Refresh" }).last().click();
 	await expect(page.getByText("quantum", { exact: true })).toBeVisible();
+	await expect(page.getByText(/does not establish demand or justify publication/).first()).toBeVisible();
 });
 
 test("tenant authorization blocks outsiders and dashboard reports network failures", async ({ page }) => {

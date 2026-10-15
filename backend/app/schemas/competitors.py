@@ -14,6 +14,7 @@ class TopicCoverage(BaseModel):
     match_method: str
     page_count: int
     evidence: list[TopicEvidence]
+    recommended_action: str | None = None
 
 
 class CompetitorWebsiteCoverage(BaseModel):
