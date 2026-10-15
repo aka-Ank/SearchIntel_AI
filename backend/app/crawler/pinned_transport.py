@@ -13,7 +13,6 @@ class PinnedAsyncHTTPTransport(httpx.AsyncHTTPTransport):
     """HTTPX transport that connects to validated DNS answers while retaining the URL host."""
 
     def __init__(self, safety_policy: UrlSafetyPolicy) -> None:
-        super().__init__(trust_env=False)
         self._pool = httpcore.AsyncConnectionPool(
             network_backend=PinnedNetworkBackend(safety_policy)
         )

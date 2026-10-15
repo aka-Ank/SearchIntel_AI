@@ -27,8 +27,9 @@ def normalize_url(url: str) -> str:
     scheme = parsed.scheme.lower()
     hostname = (parsed.hostname or "").lower()
     port = f":{parsed.port}" if parsed.port else ""
+    netloc_host = f"[{hostname}]" if ":" in hostname else hostname
     path = parsed.path or "/"
-    normalized = parsed._replace(scheme=scheme, netloc=f"{hostname}{port}", path=path)
+    normalized = parsed._replace(scheme=scheme, netloc=f"{netloc_host}{port}", path=path)
     without_fragment, _fragment = urldefrag(urlunparse(normalized))
     return without_fragment
 
@@ -49,10 +50,12 @@ def validate_crawl_url(url: str, policy: UrlSafetyPolicy | None = None) -> str:
         if host.lower().rstrip(".") == "metadata.google.internal":
             raise UnsafeUrlError("Local or metadata hostnames are not allowed")
         try:
-            if ipaddress.ip_address(host) in BLOCKED_IPS:
-                raise UnsafeUrlError("Cloud metadata addresses are not allowed")
+            address = ipaddress.ip_address(host)
         except ValueError:
             pass
+        else:
+            if _is_metadata_ip(address):
+                raise UnsafeUrlError("Cloud metadata addresses are not allowed")
         return normalized
 
     resolve_crawl_addresses(host, policy)
@@ -82,7 +85,7 @@ def resolve_crawl_addresses(
         addresses = (ip,)
 
     for address in addresses:
-        if address in BLOCKED_IPS:
+        if _is_metadata_ip(address):
             raise UnsafeUrlError("Cloud metadata addresses are not allowed")
         if not policy.allow_local_urls:
             _validate_ip_address(address)
@@ -90,11 +93,9 @@ def resolve_crawl_addresses(
 
 
 def _validate_ip_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> None:
-    if ip in BLOCKED_IPS:
-        raise UnsafeUrlError("Cloud metadata addresses are not allowed")
-
     if (
-        ip.is_private
+        not ip.is_global
+        or ip.is_private
         or ip.is_loopback
         or ip.is_link_local
         or ip.is_multicast
@@ -102,3 +103,11 @@ def _validate_ip_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> N
         or ip.is_reserved
     ):
         raise UnsafeUrlError("Internal network addresses are not allowed")
+
+
+def _is_metadata_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    return ip in BLOCKED_IPS or (
+        isinstance(ip, ipaddress.IPv6Address)
+        and ip.ipv4_mapped is not None
+        and ip.ipv4_mapped in BLOCKED_IPS
+    )
