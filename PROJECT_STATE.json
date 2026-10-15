@@ -2,7 +2,7 @@
   "project": "SearchIntel AI",
   "updated_at": "2026-10-15",
   "current_phase": "phase_11_production_security_hardening",
-  "current_task": "rate_limits_dns_pinning_and_full_prefork_crawl",
+  "current_task": "rate_limits_dns_pinning_and_broader_tenant_isolation",
   "run_status": "in_progress",
   "completed_phases": [
     "phase_00_recovery",
@@ -17,16 +17,17 @@
     "phase_07_worker_reliability_service_tests",
     "phase_08_configured_llm_provider_adapter",
     "phase_09_playwright_browser_e2e",
-    "phase_10_competitor_coverage_foundation"
+    "phase_10_competitor_coverage_foundation",
+    "phase_07_linux_prefork_full_workflow"
   ],
   "blocked_phases": [],
   "pending_tasks": [
     "implement_login_and_crawl_rate_limits",
     "plan_reviewed_legacy_tenant_membership_backfill_and_dns_pinning",
-    "verify_full_linux_python312_prefork_crawl_and_postgresql_qdrant_tenant_boundary",
+    "verify_broader_postgresql_qdrant_cross_tenant_isolation_and_profile_performance",
     "add_streaming_and_run_real_llm_smoke_only_with_credentials_and_authorization",
     "validate_semantic_competitor_match_quality_with_configured_sentence_transformer",
-    "competitor_seo_recommendations_performance_and_advanced_roadmap"
+    "competitor_seo_recommendations_and_advanced_roadmap"
   ],
   "verified_tests": {
     "pytest": {
@@ -101,8 +102,8 @@
       "verified_at": "2026-10-15"
     },
     "celery_prefork_linux_python312": {
-      "command": "isolated Docker network, Python 3.12.15, Redis 7, Celery prefork concurrency 2",
-      "result": "worker control ping and routed crawl task dispatch passed; absent job ID means a full crawl was not verified",
+      "command": "Isolated Docker network with Python 3.12, PostgreSQL 16, Redis 7, Qdrant 1.12, FastAPI, fixture server, and Celery prefork concurrency 2",
+      "result": "full workflow passed: crawled 2 pages; PostgreSQL persisted pages/chunks; Qdrant stored vectors; hybrid search returned results; mock RAG returned citations; SEO audit completed",
       "verified_at": "2026-10-15"
     },
     "frontend_lint_typecheck_build": {
@@ -135,6 +136,10 @@
     "redis_session_revocation": {
       "result": "Redis-backed opaque session removed on logout; replaying the prior cookie returned 401 in isolated PostgreSQL/Redis integration and automated test",
       "verified_at": "2026-10-15"
+    },
+    "celery_prefork_full_e2e": {
+      "result": "PASS on isolated Linux/Python 3.12 containers; all test containers and the temporary network were removed after verification",
+      "verified_at": "2026-10-15"
     }
   },
   "last_verified_checkpoint": {
@@ -152,13 +157,13 @@
       "frontend/e2e/dashboard.spec.ts",
       "backend/app/auth.py"
     ],
-    "local_commit": "3d7db85 feat: add authenticated search intelligence foundations"
+    "local_commit": "full prefork workflow evidence documented in the next local checkpoint commit"
   },
-  "next_action": "Run a complete crawl under Linux/Python 3.12 Celery prefork against isolated PostgreSQL/Redis/Qdrant, then address login/crawl rate limits and crawler DNS pinning.",
+  "next_action": "Address login/crawl rate limits and crawler DNS pinning; then run cross-tenant PostgreSQL/Qdrant isolation and performance checks.",
   "environment_limitations": [
-    "The original Git metadata remains preserved at /tmp/searchintel-preserve-20261015/git-original-live with seven missing blobs and no remote; a separate clean local snapshot history is used.",
-    "Linux/Python 3.12 prefork startup, ping, and task routing passed, but the probe referenced an absent job ID; a full prefork crawl remains unverified. macOS/Python 3.14 uses the documented solo pool.",
-    "Playwright integration uses SQLite, Redis, an in-memory vector adapter, and a solo Celery worker; it does not prove PostgreSQL/Qdrant behavior. Earlier isolated PostgreSQL/Redis/Qdrant workflow remains separately verified.",
+    "The original Git metadata remains preserved at /tmp/searchintel-preserve-20261015/git-original-live with seven missing blobs and no remote; clean local snapshot history is used.",
+    "Full prefork crawl/search/RAG/audit passed on Linux/Python 3.12. Host macOS/Python 3.14 had a Celery prefork tracer crash; use the documented solo pool on this host.",
+    "Playwright integration uses SQLite, Redis, an in-memory vector adapter, and a solo worker; PostgreSQL/Qdrant were verified separately in controlled Docker workflows.",
     "No real LLM request or sentence-transformer model evaluation was run. Live provider smoke requires configured credentials and explicit paid-inference authorization.",
     "Existing tenants require a reviewed user-to-tenant membership backfill before authenticated access is enabled for legacy data."
   ],
@@ -178,7 +183,7 @@
     "2_background_crawl": "implemented_and_controlled_live_services_verified_solo_pool",
     "3_technical_seo": "implemented_and_live_audit_verified",
     "4_frontend": "core_dashboard_live_api_browser_verified",
-    "5_end_to_end_validation": "controlled_live_stack_passed_prefork_runtime_pending",
-    "end_to_end_validation": "isolated_postgresql_redis_qdrant_workflow_passed; browser_e2e_passed_on_sqlite_redis; full_prefork_crawl_pending"
+    "5_end_to_end_validation": "controlled_solo_and_linux_python312_prefork_workflows_passed",
+    "end_to_end_validation": "isolated_postgresql_redis_qdrant_crawl_search_rag_audit_passed_on_solo_and_linux_prefork; browser_e2e_passed_on_sqlite_redis"
   }
 }

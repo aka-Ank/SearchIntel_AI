@@ -6,7 +6,7 @@ Updated: 2026-10-15
 
 - Recovery: complete. The 66-file available archive was restored without modifying the archive.
 - Existing crawl-to-search and grounded RAG baseline: preserved; regression suite passes.
-- Async crawl worker: Celery/Redis with persisted PostgreSQL jobs. Retry, stale recovery, cancellation, deduplication, and failure-state tests pass. Linux/Python 3.12 prefork startup and routing passed; a full prefork crawl remains unverified.
+- Async crawl worker: Celery/Redis with persisted PostgreSQL jobs. Retry, stale recovery, cancellation, deduplication, and failure-state tests pass. A full Linux/Python 3.12 prefork crawl-to-Qdrant/search/RAG/audit workflow passed; macOS/Python 3.14 keeps the solo pool fallback.
 - Readiness endpoint: reports database, Redis, and a live Celery worker with `503` when not ready; unit checks and a live `200` check passed.
 - Technical SEO audits: deterministic rules, relational persistence, Celery dispatch, tenant-scoped APIs, and audit history pass unit checks and a live audit (3 pages, 27 findings).
 - Frontend: Next.js dashboard implements auth, project/site management, crawl, audits, page browsing, search, RAG, and competitor coverage. Playwright E2E passes for auth, tenant isolation, crawl, audit, citations, competitor crawl, and API failure display.
@@ -27,7 +27,7 @@ Updated: 2026-10-15
 - SQLite and disposable PostgreSQL 16 Alembic upgrades — passed through `20261015_0003`.
 - `cd frontend && npm run e2e:local` — 2 Playwright tests passed using local fixture services (SQLite/Redis/solo worker); does not exercise PostgreSQL/Qdrant.
 - Controlled live workflow: readiness, Redis/Celery worker, PostgreSQL pages, Qdrant vectors, hybrid search, grounded mock RAG with citation, SEO audit, and cross-tenant `404` passed against a loopback fixture.
-- Linux/Python 3.12 Celery prefork ping and routed task dispatch passed; the absent job ID used by the probe means full prefork crawling remains unverified. macOS/Python 3.14 development uses the solo pool.
+- A full isolated Linux/Python 3.12 Celery prefork workflow completed crawl, PostgreSQL persistence, Qdrant indexing, hybrid search, cited mock RAG, and SEO audit. macOS/Python 3.14 development uses the solo pool.
 
 See [`docs/PROGRESS.md`](PROGRESS.md), [`docs/MVP_ROADMAP.md`](MVP_ROADMAP.md), and [`PROJECT_STATE.json`](../PROJECT_STATE.json) for the checkpoint and next work.
 

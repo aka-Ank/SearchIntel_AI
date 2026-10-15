@@ -10,12 +10,12 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 |---|---|---|
 | Recovery | Complete | 66 archive files restored and hash checked; see `RECOVERY_REPORT.md`. |
 | Baseline backend | Local checks pass | Existing crawl-to-search/RAG interfaces preserved; latest suite is 52 tests. |
-| Async crawling | Implemented; live local worker verified | Celery consumed Redis tasks, recovered a pending job after worker restart, crawled the fixture, tracked counters, and persisted three pages. Solo pool used; prefork crashed in this host's Python 3.14/Celery runtime. |
+| Async crawling | Implemented; solo and Linux prefork verified | Celery recovered jobs, tracked progress, and persisted pages. A full Python 3.12 prefork workflow crawled two pages, indexed vectors, searched, answered with a citation, and completed an SEO audit. macOS/Python 3.14 development retains the solo pool. |
 | Technical SEO | Implemented; live local service verified | A worker audited three PostgreSQL pages and persisted 27 findings; status, history, summary, and finding APIs returned the stored results. |
 | Frontend | Implemented; browser E2E passed | Playwright verifies auth, tenant isolation, project and website creation, crawl progress, audit findings, indexed pages, cited mock RAG, competitor crawling/coverage, and API failure display. |
 | Live service E2E | Controlled stack passed | Isolated Docker Compose project with PostgreSQL, Redis, and Qdrant. Existing `seo-*` containers and volumes were preserved. |
 | Authentication | Implemented; SQLite and PostgreSQL checks passed | FastAPI Users, CSRF, tenant roles, Alembic `20261015_0003`, and PostgreSQL cross-tenant denial verified. |
-| Worker reliability | Service tests and prefork startup/routing passed | Retry, stale recovery, idempotency, cancellation, and failure persistence tests pass. A full prefork crawl remains unverified. |
+| Worker reliability | Service tests and full Linux prefork workflow passed | Retry, stale recovery, idempotency, cancellation, and failure persistence tests pass; prefork completed crawl through audit. |
 | LLM provider | Adapter implemented; mock tests passed | OpenAI-compatible provider has bounded retries/timeouts, usage accounting, and optional cost estimates. No live provider call was made. |
 | Competitor intelligence | Initial phrase coverage implemented | Competitors use existing crawl/index flow. Coverage links candidate phrases to crawled pages; configured sentence-transformer embeddings enable semantic matching. |
 
@@ -50,7 +50,7 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - The first prefork worker attempt crashed inside Celery's fast task tracer on this Python 3.14/macOS host. Verification succeeded using `--pool=solo --concurrency=1`; prefork remains an open runtime check.
 - Live setup caught and fixed `ProjectService` ignoring configured `ALLOW_LOCAL_URLS`; a regression test covers explicitly permitted loopback website registration.
 
-## Known gaps and next actions
+## Historical first checkpoint gaps (superseded by the verified updates below)
 
 1. Resolve and verify the Celery prefork runtime on the target Python version; this live check used Celery's solo pool.
 2. Verify the new authenticated tenant membership and authorization against PostgreSQL and browser E2E; plan explicit membership backfill for existing tenants.
@@ -68,14 +68,14 @@ Historical checkpoint note: this entry predates the 2026-10-15 repository preser
 - Tests cover anonymous rejection, cookie login/logout, CSRF, cross-tenant denial, and viewer/editor roles. Full backend suite: **43 passed**; Ruff and mypy pass. Fresh SQLite migration passes through `20261015_0003`. Frontend lint, typecheck, and production build pass.
 - Auth migration has not yet been run against PostgreSQL, and browser E2E has not yet exercised the new login UI. Existing project and website data require explicit membership backfill before those users can access them; current API does not silently assign legacy tenants to new accounts.
 - Current next task: complete an isolated Celery prefork check on Linux/Python 3.12 and strengthen service-level retry, recovery, cancellation, idempotency, and failure-state tests. A no-credential real LLM adapter and Playwright browser suite follow; paid/live provider smoke remains unverified.
-- Linux/Python 3.12.15 prefork runtime check: an isolated Docker network with Redis 7 started a Celery worker at concurrency 2; worker control ping succeeded and a task routed to the `crawls` queue completed. The probe task referenced an intentionally absent job ID, so this verifies worker startup/routing/task delivery, not a full prefork crawl. Verification containers and network were cleaned up; no existing project containers or volumes were touched.
+- Initial Linux/Python 3.12.15 prefork probe verified worker ping and routed task delivery using an absent job ID. A later full prefork crawl/search/RAG/audit run is recorded in the current checkpoint below.
 - Added `docs/SECURITY.md` and `docs/DEVELOPMENT.md` for secret setup, cookie/CSRF behavior, role policy, legacy tenant backfill requirements, and current security limits.
 
 ## 2026-10-15 — Verified authentication, provider, browser, and competitor checkpoint
 
 - PostgreSQL 16 migration through `20261015_0003` passed. Registration, login, tenant/membership persistence, tenant-local project access, cross-tenant `404`, and logout token replay rejection were exercised against isolated PostgreSQL and Redis containers. This probe caught and fixed tenant/membership insert ordering.
 - Backend checks: **52 passed**, Ruff passed, and mypy passed for 85 source files. SQLite migration passed through `20261015_0003`.
-- Linux/Python 3.12 prefork worker startup, control ping, and routed task delivery passed on an isolated Docker network. The task used a deliberately absent job ID, so no full crawl on prefork has been verified.
+- Linux/Python 3.12 prefork worker startup, control ping, and routed task delivery passed on an isolated Docker network. An additional full run then verified prefork crawl, PostgreSQL page persistence, Qdrant vector count, hybrid search, cited mock RAG, and SEO audit against isolated PostgreSQL/Redis/Qdrant and a fixture server. Two fixture pages were persisted and indexed.
 - Redis-backed opaque session tokens are deleted on logout; an isolated PostgreSQL/Redis integration replayed the old cookie and received `401`.
 - `npm run e2e:local`: **2 Playwright tests passed** against isolated SQLite, Redis, a solo Celery worker, FastAPI, Next.js, and local HTML fixtures. E2E covered signup, tenant isolation, project/site creation, crawl, SEO audit, page explorer, citation display, competitor registration/crawl/topic coverage, and API failure UI. This harness does not use PostgreSQL or Qdrant.
 - `OpenAICompatibleProvider` includes environment credentials, configurable model/base URL, bounded timeouts/retries, usage and optional cost accounting, and citation-grounded requests. Mock tests pass; no real provider call was made. Streaming remains unimplemented.
@@ -84,6 +84,6 @@ Historical checkpoint note: this entry predates the 2026-10-15 repository preser
 ## Remaining work
 
 - Add login/crawl rate limits; plan an explicit membership backfill for existing tenants; add DNS pinning to close the remaining rebinding risk.
-- Verify full prefork crawling and broader PostgreSQL/Qdrant tenant isolation; profile performance and resource usage.
+- Verify broader PostgreSQL/Qdrant cross-tenant isolation; profile performance and resource usage.
 - A live LLM smoke test and streaming need configured credentials and explicit paid-inference authorization.
 - Extend competitor topic quality, competitive SEO audits, and recommendations. No ranking, traffic, backlink, or keyword-demand claims are made.

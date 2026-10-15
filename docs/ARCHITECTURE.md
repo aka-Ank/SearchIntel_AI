@@ -198,14 +198,14 @@ This flow has passed unit checks and a controlled PostgreSQL/Redis/Celery/Qdrant
 3. Bounded asynchronous crawl and deterministic SEO audits — unit-tested and controlled live worker verified with Celery solo pool.
 4. Qdrant hybrid retrieval and grounded RAG — controlled service workflow verified; mock LLM only.
 5. Connected Next.js dashboard — build- and browser-verified against live local APIs.
-6. Production hardening — prefork startup and routing, authenticated tenant identity, browser E2E, retry/recovery tests, and PostgreSQL auth checks pass. A full prefork crawl, broader fault injection, session revocation, rate limits, DNS pinning, and performance profiling remain pending.
+6. Production hardening — full Linux/Python 3.12 prefork crawl, authenticated tenant identity, browser E2E, retry/recovery tests, and PostgreSQL auth checks pass. Broader fault injection, rate limits, DNS pinning, and performance profiling remain pending.
 7. Advanced product work — initial competitor phrase coverage is implemented with optional configured sentence-transformer similarity. Deeper competitor SEO, recommendations, monitoring, graph/agent workflows, GEO, integrations, deployment, and reproducible research remain planned.
 
 ## Async Crawl and SEO Audit Worker
 
 The API persists a crawl or audit run before dispatching the Celery task. The worker reconstructs the service container and writes progress to PostgreSQL. A partial unique index prevents multiple active crawl jobs for one tenant/project/website. Crawls persist individual pages and chunks through the existing indexing service, which skips vector/chunk replacement when the content hash is unchanged. A worker startup recovery task requeues pending and stale running jobs. Audit results are relational records with tenant scope and evidence; the deterministic audit engine labels indexability as unverified unless an external search provider is later integrated.
 
-Run a worker locally from `backend/` with `uv run celery -A app.tasks.queue:celery_app worker --loglevel=INFO --queues=crawls,audits --pool=solo --concurrency=1`. This requires reachable Redis and PostgreSQL. Controlled integration passed with Celery's solo pool on the host. Linux/Python 3.12 prefork startup, ping, and routed task delivery passed; the host's Python 3.14/macOS prefork tracer previously crashed. A full crawl on prefork remains unverified. Recovery tasks are routed to the crawl queue consumed by the documented worker command.
+Run a worker locally from `backend/` with `uv run celery -A app.tasks.queue:celery_app worker --loglevel=INFO --queues=crawls,audits --pool=solo --concurrency=1`. This requires reachable Redis and PostgreSQL. The full crawl/search/RAG/audit workflow passed on both the host's solo pool and Linux/Python 3.12 prefork. The host's Python 3.14/macOS prefork tracer previously crashed, so the local fallback remains solo. Recovery tasks are routed to the crawl queue consumed by the documented worker command.
 
 ## Key Tradeoffs
 

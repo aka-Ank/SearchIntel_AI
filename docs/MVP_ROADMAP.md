@@ -10,7 +10,7 @@
 
 ## Stage 2 — Background crawl infrastructure
 
-**Implemented; unit and controlled service verification passed.** Redis-backed Celery tasks create and execute persistent PostgreSQL jobs, track progress, handle duplicate active jobs, support cancellation, retry transient HTTP failures with bounded exponential backoff, and requeue stale work on worker startup. Live recovery requeued and completed a persisted pending crawl. Existing page/chunk persistence and content-hash skip behavior remain in place. A loopback fixture crawl persisted three pages and indexed three Qdrant vectors. The local verification worker needed Celery's solo pool because prefork failed inside its task tracer on Python 3.14/macOS; prefork remains unverified on the target production runtime.
+**Implemented; service, solo, and Linux prefork verification passed.** Redis-backed Celery tasks create and execute persistent PostgreSQL jobs, track progress, handle duplicate active jobs, support cancellation, retry transient HTTP failures with bounded exponential backoff, and requeue stale work on worker startup. Live recovery requeued and completed a persisted pending crawl. A full Python 3.12 prefork workflow crawled two fixture pages, persisted PostgreSQL pages and chunks, indexed Qdrant vectors, returned hybrid-search results and a cited mock RAG response, and completed a technical audit. The documented macOS/Python 3.14 development fallback remains the solo pool.
 
 ## Stage 3 — Technical SEO engine
 
@@ -22,7 +22,7 @@
 
 ## Stage 5 — End-to-end validation
 
-**Controlled local workflow verified; production-runtime coverage pending.** A PostgreSQL/Redis/Qdrant stack and Celery solo worker completed crawl → PostgreSQL persistence → Qdrant indexing → hybrid search → grounded mock RAG → SEO audit. PostgreSQL auth and tenant-isolation checks also passed separately. Playwright passed against SQLite, Redis, solo Celery, FastAPI, and Next.js. Prefork task dispatch is verified on Linux/Python 3.12, but a full prefork crawl is not.
+**Controlled local workflow verified with Celery solo and prefork.** Isolated PostgreSQL/Redis/Qdrant stacks completed crawl → PostgreSQL persistence → Qdrant indexing → hybrid search → grounded mock RAG → SEO audit. The prefork run used Linux/Python 3.12. PostgreSQL auth/session and tenant-isolation checks also passed separately. Playwright passed against SQLite, Redis, solo Celery, FastAPI, and Next.js.
 
 ## Reliability hardening checkpoint
 
@@ -49,7 +49,7 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 
 ## Stage 7 — Worker reliability and configured LLM adapter
 
-**Implemented with deterministic automated tests.** Worker tests cover transient retry, stale-job recovery, cancellation/idempotency state, and durable failure reporting. Linux/Python 3.12 Celery prefork startup, ping, and routed task delivery passed; a full prefork crawl remains unverified. The OpenAI-compatible LLM adapter supports environment credentials, timeouts, bounded retries, token usage, optional cost estimates, evidence-grounded prompts, and citation checks. Mock tests pass; live-provider smoke and streaming remain unverified.
+**Implemented with deterministic tests and full runtime verification.** Worker tests cover transient retry, stale-job recovery, cancellation/idempotency state, and durable failure reporting. The Linux/Python 3.12 prefork workflow completed crawl through audit against isolated PostgreSQL/Redis/Qdrant. The OpenAI-compatible LLM adapter supports environment credentials, timeouts, bounded retries, token usage, optional cost estimates, evidence-grounded prompts, and citation checks. Mock tests pass; live-provider smoke and streaming remain unverified.
 
 ## Stage 8 — Competitor coverage foundation
 
@@ -57,8 +57,8 @@ Initial competitor registration, crawl/indexing, evidence-linked phrase coverage
 
 ## Next stages
 
-- Verify a full Celery prefork crawl and expand worker fault/load testing.
-- Add server-side session revocation, login/crawl rate limits, DNS pinning, and explicit legacy membership backfill.
+- Expand worker fault/load testing and add login/crawl rate limits.
+- Plan an explicit legacy membership backfill and close the crawler DNS rebinding gap.
 - Add provider streaming and run a real-provider smoke only when credentials and explicit paid-inference authorization exist; retain mock CI.
 - Improve semantic competitor analysis quality, then add comparative SEO findings and recommendations without asserting unavailable search metrics.
 - Continue recommendations, monitoring, graph, GEO, authorized search analytics, performance, deployment, and research phases from the master roadmap.
