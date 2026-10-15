@@ -16,7 +16,6 @@ class UrlSafetyPolicy:
     allowed_schemes: tuple[str, ...] = ("http", "https")
 
 
-BLOCKED_HOSTS = {"localhost", "metadata.google.internal"}
 BLOCKED_IPS = {ipaddress.ip_address("169.254.169.254")}
 
 
@@ -47,35 +46,47 @@ def validate_crawl_url(url: str, policy: UrlSafetyPolicy | None = None) -> str:
         raise UnsafeUrlError("URL host is required")
 
     if policy.allow_local_urls:
+        if host.lower().rstrip(".") == "metadata.google.internal":
+            raise UnsafeUrlError("Local or metadata hostnames are not allowed")
+        try:
+            if ipaddress.ip_address(host) in BLOCKED_IPS:
+                raise UnsafeUrlError("Cloud metadata addresses are not allowed")
+        except ValueError:
+            pass
         return normalized
 
-    _validate_hostname(host)
+    resolve_crawl_addresses(host, policy)
     return normalized
 
 
-def _validate_hostname(host: str) -> None:
+def resolve_crawl_addresses(
+    host: str, policy: UrlSafetyPolicy | None = None
+) -> tuple[ipaddress.IPv4Address | ipaddress.IPv6Address, ...]:
+    """Resolve a crawl host once and return only addresses permitted by its safety policy."""
+    policy = policy or UrlSafetyPolicy()
     hostname = host.lower().rstrip(".")
-    if hostname in BLOCKED_HOSTS:
+    if hostname == "metadata.google.internal":
         raise UnsafeUrlError("Local or metadata hostnames are not allowed")
 
     try:
         ip = ipaddress.ip_address(hostname)
     except ValueError:
-        _validate_resolved_addresses(hostname)
-        return
+        try:
+            address_info = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)
+        except socket.gaierror as exc:
+            raise UnsafeUrlError("URL hostname could not be resolved safely") from exc
+        addresses = tuple(dict.fromkeys(ipaddress.ip_address(info[4][0]) for info in address_info))
+        if not addresses:
+            raise UnsafeUrlError("URL hostname did not resolve to an address") from None
+    else:
+        addresses = (ip,)
 
-    _validate_ip_address(ip)
-
-
-def _validate_resolved_addresses(hostname: str) -> None:
-    try:
-        address_info = socket.getaddrinfo(hostname, None)
-    except socket.gaierror as exc:
-        raise UnsafeUrlError("URL hostname could not be resolved safely") from exc
-
-    for info in address_info:
-        ip = ipaddress.ip_address(info[4][0])
-        _validate_ip_address(ip)
+    for address in addresses:
+        if address in BLOCKED_IPS:
+            raise UnsafeUrlError("Cloud metadata addresses are not allowed")
+        if not policy.allow_local_urls:
+            _validate_ip_address(address)
+    return addresses
 
 
 def _validate_ip_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> None:

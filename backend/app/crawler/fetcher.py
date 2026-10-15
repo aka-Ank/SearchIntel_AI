@@ -8,6 +8,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 
 from app.core.url_security import UnsafeUrlError, UrlSafetyPolicy, validate_crawl_url
+from app.crawler.pinned_transport import PinnedAsyncHTTPTransport
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,8 @@ class HttpxFetcher:
             timeout=self._timeout_seconds,
             follow_redirects=False,
             headers={"User-Agent": self._user_agent},
+            transport=PinnedAsyncHTTPTransport(self._safety_policy),
+            trust_env=False,
         ) as client:
             current = safe_url
             for redirect in range(6):
@@ -92,6 +95,8 @@ class HttpxFetcher:
             timeout=self._timeout_seconds,
             follow_redirects=False,
             headers={"User-Agent": self._user_agent},
+            transport=PinnedAsyncHTTPTransport(self._safety_policy),
+            trust_env=False,
         ) as client:
             current = safe_url
             for redirect in range(6):
