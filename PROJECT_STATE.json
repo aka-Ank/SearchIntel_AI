@@ -1,0 +1,118 @@
+{
+  "project": "SearchIntel AI",
+  "updated_at": "2026-10-15",
+  "current_phase": "phase_06_security_and_operational_hardening",
+  "current_task": "prefork_runtime_tenant_auth_and_advanced_features",
+  "run_status": "in_progress",
+  "completed_phases": [
+    "phase_00_recovery",
+    "phase_00_baseline_local_verification",
+    "phase_01_async_crawl_local_implementation",
+    "phase_02_technical_seo_local_implementation",
+    "phase_04_frontend_core_dashboard_local_verification",
+    "phase_04_response_size_hardening",
+    "phase_05_local_readiness_checks",
+    "phase_05_controlled_postgresql_redis_qdrant_e2e"
+  ],
+  "blocked_phases": [],
+  "pending_tasks": [
+    "verify_celery_prefork_on_target_linux_python_runtime",
+    "authenticated_tenant_membership_and_authorization",
+    "committed_browser_e2e_and_retry_cancel_crash_recovery_integration_tests",
+    "performance_and_resource_benchmarks",
+    "competitor_analysis_and_content_gaps",
+    "recommendations_monitoring_graph_geo_and_external_integrations",
+    "security_performance_deployment_and_research_phases"
+  ],
+  "verified_tests": {
+    "pytest": {
+      "command": "cd backend && uv run pytest -q",
+      "result": "40 passed, one Starlette/httpx TestClient deprecation warning",
+      "verified_at": "2026-10-15"
+    },
+    "ruff": {
+      "command": "cd backend && uv run ruff check app tests",
+      "result": "passed",
+      "verified_at": "2026-10-15"
+    },
+    "mypy": {
+      "command": "cd backend && uv run mypy app",
+      "result": "passed for 78 source files",
+      "verified_at": "2026-10-15"
+    },
+    "frontend_lint": {
+      "command": "cd frontend && npm run lint",
+      "result": "passed; Biome checked 3 files",
+      "verified_at": "2026-10-15"
+    },
+    "frontend_typecheck": {
+      "command": "cd frontend && npm run typecheck",
+      "result": "passed",
+      "verified_at": "2026-10-15"
+    },
+    "frontend_build": {
+      "command": "cd frontend && npm run build",
+      "result": "passed with Next.js 16.4.1",
+      "verified_at": "2026-10-15"
+    },
+    "frontend_dependency_audit": {
+      "command": "cd frontend && npm audit",
+      "result": "passed; zero reported vulnerabilities",
+      "verified_at": "2026-10-15"
+    },
+    "dashboard_browser_smoke": {
+      "result": "browser loaded live PostgreSQL project, pages, latest crawl counters, and 27 audit findings after selecting the persisted tenant/project; earlier project/website creation smoke used disposable SQLite",
+      "verified_at": "2026-10-15"
+    },
+    "http_response_size_limit": {
+      "result": "unit tested streamed-response rejection above configured limit",
+      "verified_at": "2026-10-15"
+    },
+    "health_readiness": {
+      "result": "unit tested ready and no-worker states with mocked dependencies; live endpoint returned 200 with PostgreSQL, Redis, and worker healthy",
+      "verified_at": "2026-10-15"
+    },
+    "alembic": {
+      "command": "cd backend && DATABASE_URL=sqlite:////tmp/searchintel-migration-verify-20261015.db uv run alembic upgrade head",
+      "result": "passed through 20261015_0002",
+      "verified_at": "2026-10-15"
+    },
+    "celery_redis_postgresql_qdrant": {
+      "result": "passed controlled E2E with isolated Docker PostgreSQL/Redis/Qdrant and Celery solo worker: 3 pages persisted, 3 Qdrant vectors, 3 search results, grounded mock RAG with 1 citation, audit completed with 27 findings, cross-tenant lookup returned 404",
+      "verified_at": "2026-10-15"
+    }
+  },
+  "last_verified_checkpoint": {
+    "timestamp": "2026-10-15",
+    "artifacts": [
+      "docs/PROGRESS.md",
+      "docs/ARCHITECTURE.md",
+      "docs/MVP_ROADMAP.md",
+      "docs/PROJECT_STATUS.md"
+    ]
+  },
+  "next_action": "Verify Celery prefork on the target Linux/Python runtime; implement authenticated tenant authorization, committed browser E2E tests, retry/cancellation/crash recovery service tests, and performance benchmarks.",
+  "environment_limitations": [
+    "Celery prefork crashed inside its fast task tracer on the host's Python 3.14/macOS runtime; live verification succeeded with the solo pool and concurrency 1.",
+    "No browser E2E harness is committed; live browser verification was performed interactively.",
+    "Git repository has no remote and missing objects were reported previously; the current cached-diff check also fails because object 0de093ea9a0f266ede3aa19de87de02178137b98 is unavailable. No commit or history rewrite was performed."
+  ],
+  "external_dependencies": [
+    "Live model provider credentials and paid inference authorization are not available; current RAG remains on the existing mock provider path."
+  ],
+  "recovery": {
+    "archive": "/Users/aka_ank/iCloud Drive (Archive) - 1/Desktop/SEO",
+    "archive_preserved": true,
+    "archive_files_verified": 66,
+    "original_archive_files_missing": 0,
+    "previous_dashboard_and_mvp_artifacts_found": false
+  },
+  "legacy_milestones": {
+    "0_recovery": "complete",
+    "1_baseline_local_checks": "passed",
+    "2_background_crawl": "implemented_and_controlled_live_services_verified_solo_pool",
+    "3_technical_seo": "implemented_and_live_audit_verified",
+    "4_frontend": "core_dashboard_live_api_browser_verified",
+    "5_end_to_end_validation": "controlled_live_stack_passed_prefork_runtime_pending"
+  }
+}

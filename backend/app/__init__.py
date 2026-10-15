@@ -1,0 +1,1 @@
+"""SearchIntel AI backend package."""

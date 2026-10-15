@@ -1,0 +1,10 @@
+[
+  {
+    "question": "What does the site say about JavaScript SEO hydration?",
+    "relevant_page_ids": ["fixture-javascript-seo"]
+  },
+  {
+    "question": "Where is technical SEO crawlability discussed?",
+    "relevant_page_ids": ["fixture-technical-seo"]
+  }
+]
