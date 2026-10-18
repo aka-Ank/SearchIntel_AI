@@ -1,6 +1,6 @@
 {
   "project": "SearchIntel AI",
-  "updated_at": "2026-10-15",
+  "updated_at": "2026-10-18",
   "current_phase": "phase_14_competitor_gap_review_and_product_validation",
   "current_task": "run_project_membership_audit_when_database_is_available_and_profile_end_to_end_resources",
   "run_status": "in_progress",
@@ -30,6 +30,8 @@
     "run_read_only_audit_against_project_postgresql_when_available",
     "review_explicit_legacy_user_to_tenant_mappings_before_backfill",
     "profile_performance_and_resource_usage",
+    "resolve_orphaned_page_in_local_sqlite_without_discarding_or_misattributing_content",
+    "migrate_legacy_sqlite_only_after_schema_and_data_recovery_review",
     "add_streaming_and_run_real_llm_smoke_only_with_credentials_and_authorization",
     "validate_semantic_competitor_match_quality_with_configured_sentence_transformer",
     "competitor_seo_recommendations_and_advanced_roadmap"
@@ -38,32 +40,32 @@
     "pytest": {
       "command": "cd backend && uv run pytest -q",
       "result": "61 passed, 3 skipped (opt-in PostgreSQL/Qdrant integrations without service URLs and opt-in PostgreSQL legacy audit); one Starlette/httpx TestClient deprecation warning",
-      "verified_at": "2026-10-15"
+      "verified_at": "2026-10-18"
     },
     "ruff": {
-      "command": "cd backend && uv run ruff check app tests",
+      "command": "cd backend && uv run ruff check app tests scripts",
       "result": "passed",
-      "verified_at": "2026-10-15"
+      "verified_at": "2026-10-18"
     },
     "mypy": {
       "command": "cd backend && uv run mypy app",
       "result": "passed for 89 source files",
-      "verified_at": "2026-10-15"
+      "verified_at": "2026-10-18"
     },
     "frontend_lint": {
       "command": "cd frontend && npm run lint",
       "result": "passed; Biome checked 3 files",
-      "verified_at": "2026-10-15"
+      "verified_at": "2026-10-18"
     },
     "frontend_typecheck": {
       "command": "cd frontend && npm run typecheck",
       "result": "passed",
-      "verified_at": "2026-10-15"
+      "verified_at": "2026-10-18"
     },
     "frontend_build": {
       "command": "cd frontend && npm run build",
       "result": "passed with Next.js 16.4.1",
-      "verified_at": "2026-10-15"
+      "verified_at": "2026-10-18"
     },
     "frontend_dependency_audit": {
       "command": "cd frontend && npm audit",
@@ -180,6 +182,26 @@
       "result": "Python 3.14.6; 1,000 synthetic pages × 875 words; 875,000 words processed in 3.076 seconds with 0.12 MiB tracemalloc peak; 95 distinct candidates. Measures only _topic_counts and is not an end-to-end capacity result.",
       "verified_at": "2026-10-15"
     },
+    "repository_integrity_recheck": {
+      "command": "git fsck --full --no-reflogs; compare git ls-files paths with filesystem",
+      "result": "git fsck completed without errors; all 165 tracked paths exist; working tree had no tracked changes before integrity fixes.",
+      "verified_at": "2026-10-18"
+    },
+    "local_sqlite_read_only_integrity": {
+      "command": "SQLite read-only PRAGMA integrity_check and PRAGMA foreign_key_check against backend/searchintel.db",
+      "result": "integrity_check=ok, but one foreign-key violation exists: one page refers to a missing website. Page/chunk rows remain preserved; no repair or deletion was applied.",
+      "verified_at": "2026-10-18"
+    },
+    "legacy_sqlite_migration_rehearsal": {
+      "command": "Disposable SQLite backup; Alembic upgrade head; then baseline stamp 20261003_0001 and upgrade head",
+      "result": "Plain upgrade fails because the legacy tenants table already exists. On the disposable copy, stamping 20261003_0001 then upgrading succeeds through 20261015_0003; the orphaned page remains. Original database unchanged.",
+      "verified_at": "2026-10-18"
+    },
+    "dashboard_e2e_recheck": {
+      "command": "cd frontend && npm run e2e:local",
+      "result": "Could not start because Docker daemon socket /Users/aka_ank/.docker/run/docker.sock is unavailable. The prior 3-test pass dated 2026-10-15 remains the latest successful browser run.",
+      "verified_at": "2026-10-18"
+    },
     "legacy_membership_audit": {
       "command": "cd backend && uv run pytest -q tests/test_legacy_membership_audit.py",
       "result": "2 passed, 1 skipped in the regular suite; SQLite read-only behavior and missing-file refusal verified. The opt-in PostgreSQL read-only transaction test passed separately against a fresh PostgreSQL 16 container migrated through 20261015_0003. Actual project DB audit was not run because configured localhost:5432 PostgreSQL refused the connection.",
@@ -196,12 +218,14 @@
     }
   },
   "last_verified_checkpoint": {
-    "timestamp": "2026-10-15",
+    "timestamp": "2026-10-18",
     "artifacts": [
       "docs/PROGRESS.md",
+      ".gitignore",
       "docs/ARCHITECTURE.md",
       "docs/MVP_ROADMAP.md",
       "docs/PROJECT_STATUS.md",
+      "docs/decisions/006-preserve-legacy-sqlite-data.md",
       "docs/SECURITY.md",
       "docs/DEVELOPMENT.md",
       "PROJECT_STATE.json",
@@ -220,19 +244,18 @@
       "backend/tests/test_legacy_membership_audit.py",
       "backend/app/cli.py",
       "backend/app/schemas/competitors.py",
-      "backend/app/services/competitor_intelligence.py",
-      "backend/tests/test_competitor_intelligence.py",
       "frontend/app/page.tsx",
-      "frontend/e2e/dashboard.spec.ts",
       "backend/pyproject.toml",
       "backend/uv.lock",
-      "docs/SECURITY.md",
       ".env.example"
     ],
       "local_commit": "cc78b2b chore: add competitor extraction profiler"
   },
   "next_action": "Run the read-only membership audit when project PostgreSQL is available; review trusted user-to-tenant mappings before any backfill, and profile crawl-to-search resource use against a controlled service stack.",
   "environment_limitations": [
+    "Docker daemon socket was unavailable during the 2026-10-18 Playwright rerun; browser E2E needs to be rerun when Docker is available. The prior 3-test E2E pass is from 2026-10-15.",
+    "The ignored local SQLite database has one page row referencing a missing website. Its content and chunk were preserved; recovery needs trusted parent metadata or explicit approval to remove the orphan after backup.",
+    "Legacy SQLite databases created before Alembic stamping cannot run `alembic upgrade head` directly; a verified baseline stamp is needed, and must be preceded by a schema check and backup.",
     "The original Git metadata remains preserved at /tmp/searchintel-preserve-20261015/git-original-live with seven missing blobs and no remote; clean local snapshot history is used.",
     "Full prefork crawl/search/RAG/audit passed on Linux/Python 3.12. Host macOS/Python 3.14 had a Celery prefork tracer crash; use the documented solo pool on this host.",
     "Playwright integration uses SQLite, Redis, an in-memory vector adapter, and a solo worker; PostgreSQL/Qdrant were verified separately in controlled Docker workflows.",

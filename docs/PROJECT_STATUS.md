@@ -1,6 +1,6 @@
 # SearchIntel AI project status
 
-Updated: 2026-10-15
+Updated: 2026-10-18
 
 ## Current checkpoint
 
@@ -20,10 +20,15 @@ Updated: 2026-10-15
 ## Verified checks
 
 - `cd backend && uv sync --extra dev` — passed.
-- `cd backend && uv run pytest -q` — 61 passed, 3 opt-in PostgreSQL/Qdrant/audit integration tests skipped without service URLs; one Starlette/httpx deprecation warning. The PostgreSQL audit integration separately passed against a disposable PostgreSQL 16 database.
-- `cd backend && uv run ruff check app tests` — passed.
+- `cd backend && uv run pytest -q` — 61 passed, 3 opt-in PostgreSQL/Qdrant/audit integration tests skipped without service URLs; one Starlette/httpx deprecation warning. Rerun 2026-10-18. The PostgreSQL audit integration separately passed against a disposable PostgreSQL 16 database.
+- `cd backend && uv run ruff check app tests scripts` — passed.
 - `cd backend && uv run mypy app` — passed (89 source files).
 - `cd frontend && npm run lint`, `npm run typecheck`, and `npm run build` — passed.
+- Repository integrity recheck 2026-10-18 — `git fsck --full --no-reflogs` reported no errors; all 165 tracked files exist; working SQLite database passed `PRAGMA integrity_check` read-only.
+- SQLite data audit — the ignored `backend/searchintel.db` is structurally readable but not relationally clean: it has one page and one content chunk, with no tenant/project/website parent rows; `PRAGMA foreign_key_check` reports one page-to-website violation. The database was not changed.
+- Legacy SQLite migration rehearsal — a disposable backup copy fails plain `alembic upgrade head` because baseline table `tenants` already exists. On the copy, `alembic stamp 20261003_0001` followed by `upgrade head` reaches `20261015_0003`, but the orphan remains. The original database was preserved.
+- The preservation decision and recovery options are recorded in [ADR 006](decisions/006-preserve-legacy-sqlite-data.md).
+- Latest `npm run e2e:local` rerun on 2026-10-18 could not start because the Docker daemon socket was unavailable. The previously recorded 3-test E2E pass from 2026-10-15 remains historical; rerun when Docker is available.
 - `cd frontend && npm audit` — passed; zero reported vulnerabilities.
 - Browser workflow: loaded the live integration project, three persisted pages, completed crawl counters, and 27 audit findings after reload.
 - SQLite and disposable PostgreSQL 16 Alembic upgrades — passed through `20261015_0003`.

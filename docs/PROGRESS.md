@@ -1,6 +1,6 @@
 # SearchIntel AI development progress
 
-Updated: 2026-10-15
+Updated: 2026-10-18
 
 ## Verified checkpoint
 
@@ -100,6 +100,17 @@ The recovered backend has verified asynchronous crawling, deterministic SEO audi
 - Added `backend/scripts/profile_competitor_topics.py` for a repeatable synthetic profile: `cd backend && uv run python -m scripts.profile_competitor_topics`.
 - On Python 3.14.6, 1,000 synthetic pages with 875 words each (875,000 total) produced 95 distinct candidates in 3.076 seconds with 0.12 MiB traced peak allocation on the latest run.
 - This measures `_topic_counts` only and excludes database access, semantic embeddings, crawling, indexing, and frontend work. It is a bounded component check, not a whole-service throughput or production capacity claim. Full crawl-to-search resource profiling remains pending.
+
+## 2026-10-18 — Repository integrity recheck
+
+- `git fsck --full --no-reflogs` completed without errors. All 165 tracked paths exist, and the working tree had no tracked modifications before this recheck.
+- `backend/searchintel.db` was inspected read-only; SQLite returned `integrity_check=ok` and has six legacy application tables. The `.env` and database remain ignored and are not tracked.
+- The SQLite file contains one page and one chunk but no tenant, project, or website parents; `PRAGMA foreign_key_check` reports one page-to-website violation. I preserved it rather than delete the content or invent missing ownership records.
+- A disposable backup rehearsal showed raw `alembic upgrade head` stops because the existing `tenants` table predates Alembic stamping. Stamping the verified baseline `20261003_0001` on the copy then upgrading reached `20261015_0003`; the foreign-key violation remained. The source file was not modified.
+- The choice to preserve that SQLite data and require trusted parent records or explicit pruning approval is documented in [ADR 006](decisions/006-preserve-legacy-sqlite-data.md).
+- Preserved the existing generated `.playwright-mcp/` console log and added the directory to `.gitignore` to prevent accidental commits.
+- Backend verification rerun: **61 passed, 3 skipped**, Ruff passed across app/tests/scripts, mypy passed for 89 source files, and `uv lock --check` passed. Frontend lint, typecheck, and production build passed.
+- The latest Playwright rerun could not start because the Docker daemon socket was absent. The last successful 3-test browser run remains the 2026-10-15 result; current E2E verification is pending Docker availability.
 
 ## 2026-10-15 — Crawler DNS pinning
 
