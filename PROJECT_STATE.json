@@ -249,7 +249,7 @@
       "backend/uv.lock",
       ".env.example"
     ],
-      "local_commit": "cc78b2b chore: add competitor extraction profiler"
+      "local_commit": "061df5d docs: record repository integrity and legacy database findings"
   },
   "next_action": "Run the read-only membership audit when project PostgreSQL is available; review trusted user-to-tenant mappings before any backfill, and profile crawl-to-search resource use against a controlled service stack.",
   "environment_limitations": [
