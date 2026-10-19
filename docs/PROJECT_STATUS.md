@@ -25,9 +25,9 @@ Updated: 2026-10-18
 - `cd backend && uv run mypy app` — passed (89 source files).
 - `cd frontend && npm run lint`, `npm run typecheck`, and `npm run build` — passed.
 - Repository integrity recheck 2026-10-18 — `git fsck --full --no-reflogs` reported no errors; all 165 tracked files exist; working SQLite database passed `PRAGMA integrity_check` read-only.
-- SQLite data audit — the ignored `backend/searchintel.db` is structurally readable but not relationally clean: it has one page and one content chunk, with no tenant/project/website parent rows; `PRAGMA foreign_key_check` reports one page-to-website violation. The database was not changed.
+- SQLite local-data repair — after user authorization, a pre-repair backup was created at `backend/backups/searchintel.pre-orphan-repair-20261018.db`. Exactly one orphan page and its one dependent content chunk were removed from the ignored working database. The repaired database reports `integrity_check=ok` and zero foreign-key violations. The backup remains intact with the original page, chunk, and violation for recovery.
 - Legacy SQLite migration rehearsal — a disposable backup copy fails plain `alembic upgrade head` because baseline table `tenants` already exists. On the copy, `alembic stamp 20261003_0001` followed by `upgrade head` reaches `20261015_0003`, but the orphan remains. The original database was preserved.
-- The preservation decision and recovery options are recorded in [ADR 006](decisions/006-preserve-legacy-sqlite-data.md).
+- The preservation decision, explicit repair authorization, and backup are recorded in [ADR 006](decisions/006-preserve-legacy-sqlite-data.md).
 - Latest `npm run e2e:local` rerun on 2026-10-18 could not start because the Docker daemon socket was unavailable. The previously recorded 3-test E2E pass from 2026-10-15 remains historical; rerun when Docker is available.
 - `cd frontend && npm audit` — passed; zero reported vulnerabilities.
 - Browser workflow: loaded the live integration project, three persisted pages, completed crawl counters, and 27 audit findings after reload.

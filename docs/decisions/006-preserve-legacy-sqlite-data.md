@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted; updated 2026-10-18 after user-authorized repair
 
 ## Context
 
@@ -10,10 +10,10 @@ The ignored local `backend/searchintel.db` has a valid SQLite structure, but it 
 
 ## Decision
 
-Keep the original database unchanged. Do not delete its page/chunk or invent tenant, project, or website ownership. Any future schema adoption must start with a backup and exact baseline-schema verification. Resolve the orphan only from trusted parent metadata or after explicit authorization to remove it.
+Do not invent tenant, project, or website ownership. Any schema adoption must start with a backup and exact baseline-schema verification. The user explicitly authorized removal of the orphan after backup. A verified pre-repair snapshot is stored at `backend/backups/searchintel.pre-orphan-repair-20261018.db`; the ignored working database now has the orphan page and its dependent chunk removed.
 
 ## Consequences
 
-- The file remains available for recovery and is not treated as the current verified application database.
+- The pre-repair file remains available at the backup path for recovery and preserves the original page and chunk. The repaired working file is structurally valid and has no foreign-key violations, but it remains a local legacy database and is not treated as the current verified application database.
 - Fresh SQLite and PostgreSQL migration tests remain valid, but direct `alembic upgrade head` against this unstamped file fails at the existing `tenants` table.
-- Local database repair requires a trusted source for its missing parent rows or a user-approved data-pruning plan.
+- No ownership was inferred and no missing parent rows were fabricated. The approved repair pruned only the exact orphan page and its dependent chunk.

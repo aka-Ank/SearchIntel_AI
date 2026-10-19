@@ -2,6 +2,13 @@
 
 Updated: 2026-10-18
 
+## 2026-10-18 — Authorized local SQLite orphan repair
+
+- Created and independently verified `backend/backups/searchintel.pre-orphan-repair-20261018.db` before changing the working database. The backup is an 81,920-byte SQLite snapshot with `integrity_check=ok` and preserves the original one page, one content chunk, and foreign-key violation.
+- With the user's explicit approval, deleted exactly the orphan page row and its one dependent content chunk from ignored `backend/searchintel.db`. No tenant, project, or website rows existed, and no other rows were changed.
+- Reopened and validated the working database: `integrity_check=ok`, zero `foreign_key_check` violations, and zero rows in tenants, projects, websites, pages, and content_chunks. The original remains recoverable from the verified backup.
+- No schema migration was run. The separate legacy Alembic adoption issue remains: plain upgrade against the unstamped legacy schema fails because the baseline `tenants` table already exists; the migration rehearsal was performed on a disposable copy only.
+
 ## Verified checkpoint
 
 The recovered backend has verified asynchronous crawling, deterministic SEO audits, authenticated tenant access, configured-provider support, competitor coverage, and a connected Next.js dashboard. The controlled crawl/search/RAG/SEO workflow ran against isolated PostgreSQL, Redis, Qdrant, Celery, FastAPI, and loopback fixtures. The damaged original Git metadata and recovered files remain preserved; a clean local snapshot repository holds project history.
